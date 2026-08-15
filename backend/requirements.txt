@@ -1,0 +1,37 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Validation / settings
+# Pinned to the versions actually validated against in this sandbox (see
+# final report deviation note) -- schemas/config were import- and
+# behavior-tested with exactly these versions already present in the base
+# image; other pins below could not be verified the same way.
+pydantic==2.13.3
+pydantic-settings==2.14.0
+
+# ORM / migrations
+sqlalchemy==2.0.36
+alembic==1.14.0
+
+# HTTP client for IRD integration
+httpx==0.28.1
+
+# Scheduler (daily Asia/Kathmandu sync)
+apscheduler==3.10.4
+
+# Bikram Sambat <-> Gregorian conversion.
+# DEVIATION NOTE: this backend was developed in a sandbox whose package
+# registries (PyPI, Ubuntu apt mirrors) were blocked by network egress policy,
+# so this pin could not be installed/verified there. app/domain/nepali_calendar.py
+# tries to import it and falls back to a small anchor-date table (documented in
+# that module) if it isn't present, so the app still runs correctly either way.
+nepali_datetime==1.0.8
+
+python-multipart==0.0.20
+python-dotenv==1.0.1
+
+# Testing
+pytest==8.3.4
+pytest-cov==6.0.0
+respx==0.22.0
