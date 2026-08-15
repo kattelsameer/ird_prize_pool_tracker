@@ -4,6 +4,7 @@ import type {
   AppNotification,
   Coupon,
   MatchResult,
+  Network,
   PrizePool,
   Settings,
   SyncStatus,
@@ -160,6 +161,8 @@ export const fixtureNotifications: AppNotification[] = [
   {
     id: "notif-1",
     type: "NEW_MATCH",
+    coupon_id: fixtureCoupons[0].id,
+    draw_id: fixturePrizePools[0].draw_id,
     message: "Your coupon 007315254493 matches the Bumper Prize draw published on Aug 7.",
     created_at: "2026-08-07T09:30:00+05:45",
     read_at: null,
@@ -167,6 +170,8 @@ export const fixtureNotifications: AppNotification[] = [
   {
     id: "notif-2",
     type: "CLAIM_EXPIRING",
+    coupon_id: fixtureCoupons[1].id,
+    draw_id: fixturePrizePools[1].draw_id,
     message: "Your claim for coupon 000000000001 expires in less than 2 days.",
     created_at: "2026-08-14T09:05:00+05:45",
     read_at: null,
@@ -174,29 +179,38 @@ export const fixtureNotifications: AppNotification[] = [
   {
     id: "notif-3",
     type: "NEW_SYNC_DATA",
+    coupon_id: null,
+    draw_id: null,
     message: "New prize-pool data has been synced.",
     created_at: "2026-08-01T00:05:00+05:45",
     read_at: "2026-08-01T08:00:00+05:45",
   },
 ];
 
+export const fixtureNetworks: Network[] = [
+  { id: "network-1", name: "eSewa", active: true },
+  { id: "network-2", name: "Khalti", active: true },
+  { id: "network-3", name: "IME Pay", active: true },
+  { id: "network-4", name: "Bank Mobile App", active: true },
+  { id: "network-5", name: "Cash (manual bill)", active: true },
+];
+
 export const fixtureSettings: Settings = {
-  networks: ["eSewa", "Khalti", "IME Pay", "Bank Mobile App", "Cash (manual bill)"],
-  notification_prefs: {
-    new_match: true,
-    claim_expiring: true,
-    claim_expired: true,
-    new_sync_data: false,
-    sync_failed: true,
-  },
+  notify_new_match: true,
+  notify_claim_expiring: true,
+  notify_claim_expired: true,
+  notify_sync_updates: false,
+  notify_sync_failures: true,
+  networks: fixtureNetworks,
 };
 
 export const fixtureSyncStatus: SyncStatus = {
   is_running: false,
-  last_sync: {
-    sync_started_at: "2026-08-15T00:00:00+05:45",
-    sync_finished_at: "2026-08-15T00:00:12+05:45",
-    status: "SUCCESS",
+  latest_run: {
+    id: "sync-run-1",
+    started_at: "2026-08-15T00:00:00+05:45",
+    finished_at: "2026-08-15T00:00:12+05:45",
+    status: "success",
     records_received: 16,
     records_inserted: 2,
     records_updated: 0,

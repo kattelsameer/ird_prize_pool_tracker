@@ -1,55 +1,49 @@
 import { useEffect, useState } from "react";
-import { useSettings, useUpdateSettings } from "../api/settings";
+import { useAddNetwork, useSettings, useUpdateNetwork, useUpdateSettings } from "../api/settings";
 import { useSyncStatus, useTriggerSync } from "../api/sync";
 import { LoadingState } from "../components/LoadingState";
 import { ErrorState } from "../components/ErrorState";
-import type { Settings as SettingsType } from "../api/types";
+import type { SettingsUpdate } from "../api/types";
 import styles from "./Settings.module.css";
 
 export function Settings() {
   const settings = useSettings();
   const updateSettings = useUpdateSettings();
+  const addNetwork = useAddNetwork();
+  const updateNetwork = useUpdateNetwork();
   const syncStatus = useSyncStatus();
   const triggerSync = useTriggerSync();
 
-  const [draft, setDraft] = useState<SettingsType | null>(null);
+  const [notifyDraft, setNotifyDraft] = useState<SettingsUpdate | null>(null);
   const [newNetwork, setNewNetwork] = useState("");
 
   useEffect(() => {
-    if (settings.data && !draft) setDraft(settings.data);
-  }, [settings.data, draft]);
+    if (settings.data && !notifyDraft) {
+      setNotifyDraft({
+        notify_new_match: settings.data.notify_new_match,
+        notify_claim_expiring: settings.data.notify_claim_expiring,
+        notify_claim_expired: settings.data.notify_claim_expired,
+        notify_sync_updates: settings.data.notify_sync_updates,
+        notify_sync_failures: settings.data.notify_sync_failures,
+      });
+    }
+  }, [settings.data, notifyDraft]);
 
   if (settings.isLoading) return <LoadingState label="Loading settings…" />;
   if (settings.isError) return <ErrorState error={settings.error} onRetry={() => settings.refetch()} />;
-  if (!draft) return null;
+  if (!settings.data || !notifyDraft) return null;
 
-  function updateNetwork(index: number, value: string) {
-    setDraft((d) => (d ? { ...d, networks: d.networks.map((n, i) => (i === index ? value : n)) } : d));
+  function toggleNotificationPref(key: keyof SettingsUpdate) {
+    setNotifyDraft((d) => (d ? { ...d, [key]: !d[key] } : d));
   }
 
-  function removeNetwork(index: number) {
-    setDraft((d) => (d ? { ...d, networks: d.networks.filter((_, i) => i !== index) } : d));
+  function handleSaveNotifications() {
+    if (notifyDraft) updateSettings.mutate(notifyDraft);
   }
 
-  function addNetwork() {
+  function handleAddNetwork() {
     if (!newNetwork.trim()) return;
-    setDraft((d) => (d ? { ...d, networks: [...d.networks, newNetwork.trim()] } : d));
-    setNewNetwork("");
-  }
-
-  function toggleNotificationPref(key: keyof SettingsType["notification_prefs"]) {
-    setDraft((d) =>
-      d
-        ? {
-            ...d,
-            notification_prefs: { ...d.notification_prefs, [key]: !d.notification_prefs[key] },
-          }
-        : d
-    );
-  }
-
-  function handleSave() {
-    if (draft) updateSettings.mutate(draft);
+    addNetwork.mutate(newNetwork.trim(), { onSuccess: () => setNewNetwork("") });
   }
 
   return (
@@ -59,24 +53,30 @@ export function Settings() {
       <section className={styles.section} aria-label="Networks">
         <h2>Networks / payment methods</h2>
         <p>Manage the payment method options available when logging a coupon.</p>
-        {draft.networks.map((network, index) => (
-          <div className={styles.networkRow} key={index}>
-            <label className="visually-hidden" htmlFor={`network-${index}`}>
-              Network {index + 1}
+        {settings.data.networks.map((network) => (
+          <div className={styles.networkRow} key={network.id}>
+            <label className="visually-hidden" htmlFor={`network-${network.id}`}>
+              {network.name}
             </label>
             <input
-              id={`network-${index}`}
+              id={`network-${network.id}`}
               className={styles.networkInput}
-              value={network}
-              onChange={(e) => updateNetwork(index, e.target.value)}
+              defaultValue={network.name}
+              disabled={!network.active}
+              onBlur={(e) => {
+                const name = e.target.value.trim();
+                if (name && name !== network.name) {
+                  updateNetwork.mutate({ id: network.id, name });
+                }
+              }}
             />
             <button
               type="button"
               className={styles.removeButton}
-              onClick={() => removeNetwork(index)}
-              aria-label={`Remove ${network}`}
+              onClick={() => updateNetwork.mutate({ id: network.id, active: !network.active })}
+              aria-label={`${network.active ? "Deactivate" : "Reactivate"} ${network.name}`}
             >
-              Remove
+              {network.active ? "Deactivate" : "Reactivate"}
             </button>
           </div>
         ))}
@@ -91,8 +91,8 @@ export function Settings() {
             onChange={(e) => setNewNetwork(e.target.value)}
             placeholder="Add a network, e.g. ConnectIPS"
           />
-          <button type="button" onClick={addNetwork}>
-            Add
+          <button type="button" onClick={handleAddNetwork} disabled={addNetwork.isPending}>
+            {addNetwork.isPending ? "Adding…" : "Add"}
           </button>
         </div>
       </section>
@@ -103,8 +103,8 @@ export function Settings() {
           <input
             id="notif-new-match"
             type="checkbox"
-            checked={draft.notification_prefs.new_match}
-            onChange={() => toggleNotificationPref("new_match")}
+            checked={notifyDraft.notify_new_match ?? false}
+            onChange={() => toggleNotificationPref("notify_new_match")}
           />
           <label htmlFor="notif-new-match">Notify me about new matches</label>
         </div>
@@ -112,8 +112,8 @@ export function Settings() {
           <input
             id="notif-claim-expiring"
             type="checkbox"
-            checked={draft.notification_prefs.claim_expiring}
-            onChange={() => toggleNotificationPref("claim_expiring")}
+            checked={notifyDraft.notify_claim_expiring ?? false}
+            onChange={() => toggleNotificationPref("notify_claim_expiring")}
           />
           <label htmlFor="notif-claim-expiring">Notify me when a claim deadline is approaching</label>
         </div>
@@ -121,8 +121,8 @@ export function Settings() {
           <input
             id="notif-claim-expired"
             type="checkbox"
-            checked={draft.notification_prefs.claim_expired}
-            onChange={() => toggleNotificationPref("claim_expired")}
+            checked={notifyDraft.notify_claim_expired ?? false}
+            onChange={() => toggleNotificationPref("notify_claim_expired")}
           />
           <label htmlFor="notif-claim-expired">Notify me when a claim has expired</label>
         </div>
@@ -130,8 +130,8 @@ export function Settings() {
           <input
             id="notif-new-sync"
             type="checkbox"
-            checked={draft.notification_prefs.new_sync_data}
-            onChange={() => toggleNotificationPref("new_sync_data")}
+            checked={notifyDraft.notify_sync_updates ?? false}
+            onChange={() => toggleNotificationPref("notify_sync_updates")}
           />
           <label htmlFor="notif-new-sync">Notify me when new government data is available</label>
         </div>
@@ -139,11 +139,21 @@ export function Settings() {
           <input
             id="notif-sync-failed"
             type="checkbox"
-            checked={draft.notification_prefs.sync_failed}
-            onChange={() => toggleNotificationPref("sync_failed")}
+            checked={notifyDraft.notify_sync_failures ?? false}
+            onChange={() => toggleNotificationPref("notify_sync_failures")}
           />
           <label htmlFor="notif-sync-failed">Notify me if synchronization fails</label>
         </div>
+        <button
+          type="button"
+          className={styles.saveButton}
+          onClick={handleSaveNotifications}
+          disabled={updateSettings.isPending}
+        >
+          {updateSettings.isPending ? "Saving…" : "Save settings"}
+        </button>
+        {updateSettings.isError && <ErrorState error={updateSettings.error} />}
+        {updateSettings.isSuccess && <p role="status">Settings saved.</p>}
       </section>
 
       <section className={styles.section} aria-label="Synchronization">
@@ -152,9 +162,9 @@ export function Settings() {
           <p>
             {syncStatus.data.is_running
               ? "A sync is currently running."
-              : syncStatus.data.last_sync
-              ? `Last sync: ${syncStatus.data.last_sync.status} at ${new Date(
-                  syncStatus.data.last_sync.sync_finished_at ?? syncStatus.data.last_sync.sync_started_at
+              : syncStatus.data.latest_run
+              ? `Last sync: ${syncStatus.data.latest_run.status} at ${new Date(
+                  syncStatus.data.latest_run.finished_at ?? syncStatus.data.latest_run.started_at
                 ).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}`
               : "Never synced yet."}
           </p>
@@ -167,12 +177,6 @@ export function Settings() {
           {triggerSync.isPending ? "Syncing…" : "Sync now"}
         </button>
       </section>
-
-      {updateSettings.isError && <ErrorState error={updateSettings.error} />}
-      <button type="button" className={styles.saveButton} onClick={handleSave} disabled={updateSettings.isPending}>
-        {updateSettings.isPending ? "Saving…" : "Save settings"}
-      </button>
-      {updateSettings.isSuccess && <p role="status">Settings saved.</p>}
     </div>
   );
 }

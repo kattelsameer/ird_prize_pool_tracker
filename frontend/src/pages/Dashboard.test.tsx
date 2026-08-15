@@ -32,10 +32,11 @@ describe("Dashboard page", () => {
       http.get("http://localhost:8000/api/sync/status", () =>
         HttpResponse.json({
           is_running: false,
-          last_sync: {
-            sync_started_at: "2026-08-15T00:00:00+05:45",
-            sync_finished_at: "2026-08-15T00:00:05+05:45",
-            status: "FAILED",
+          latest_run: {
+            id: "sync-run-failed",
+            started_at: "2026-08-15T00:00:00+05:45",
+            finished_at: "2026-08-15T00:00:05+05:45",
+            status: "failed",
             records_received: 0,
             records_inserted: 0,
             records_updated: 0,
