@@ -14,7 +14,11 @@ pytest.importorskip("sqlalchemy")
 
 import httpx  # noqa: E402
 
-from tests.data_sync_service import INITIAL_SYNC_PAGE, UPDATED_SYNC_PAGE  # noqa: E402
+from tests.data_sync_service import (  # noqa: E402
+    INITIAL_SYNC_PAGE,
+    RETRY_BACKOFF_CASES,
+    UPDATED_SYNC_PAGE,
+)
 
 
 def _patched_ird_client(handler):
@@ -143,3 +147,41 @@ def test_new_match_generates_notification(db_session):
 
     notifications_after = db_session.query(Notification).filter_by(type="NEW_MATCH").all()
     assert len(notifications_after) == 1
+
+
+@pytest.mark.parametrize("name,consecutive_failures,expected_delay", RETRY_BACKOFF_CASES)
+def test_retry_delay_backoff_stages(name, consecutive_failures, expected_delay):
+    from app.services.sync_service import _retry_delay_for
+
+    assert _retry_delay_for(consecutive_failures) == expected_delay, name
+
+
+def test_repeated_failures_schedule_increasing_backoff_and_success_cancels_it(db_session):
+    from app.services import sync_service
+
+    def failing_handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("simulated outage", request=request)
+
+    with patch("app.services.sync_service.schedule_sync_retry") as mock_schedule, patch(
+        "app.services.sync_service.cancel_sync_retry"
+    ) as mock_cancel:
+        with _patched_ird_client(failing_handler):
+            sync_service.run_sync(db_session)  # 1st consecutive failure
+        assert mock_schedule.call_args.args == (3600,)
+
+        with _patched_ird_client(failing_handler):
+            sync_service.run_sync(db_session)  # 2nd consecutive failure
+        assert mock_schedule.call_args.args == (14400,)
+
+        with _patched_ird_client(failing_handler):
+            sync_service.run_sync(db_session)  # 3rd consecutive failure
+        assert mock_schedule.call_args.args == (86400,)
+
+        mock_cancel.assert_not_called()
+
+        with _patched_ird_client(_handler_for(INITIAL_SYNC_PAGE)):
+            sync_service.run_sync(db_session)  # recovers
+
+        mock_cancel.assert_called_once()
+        # No new retry scheduled after a successful run.
+        assert mock_schedule.call_count == 3

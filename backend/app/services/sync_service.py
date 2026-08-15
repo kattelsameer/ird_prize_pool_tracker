@@ -17,10 +17,16 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.db import SessionLocal
+from app.core.scheduler import cancel_sync_retry, schedule_sync_retry
 from app.integrations.ird.ird_client import IrdClient, IrdClientConfig, IrdClientError
 from app.repositories.profile_repo import list_all_profiles
 from app.repositories.prize_pool_repo import upsert_winner
-from app.repositories.sync_repo import finish_sync_run, get_latest_sync_run, start_sync_run
+from app.repositories.sync_repo import (
+    count_consecutive_failed_runs,
+    finish_sync_run,
+    get_latest_sync_run,
+    start_sync_run,
+)
 from app.services.matching_service import compute_matches_for_profile
 from app.services.notification_service import (
     generate_match_and_claim_notifications,
@@ -33,6 +39,25 @@ logger = logging.getLogger("app.services.sync")
 
 _sync_lock = threading.Lock()
 _sync_in_progress = False
+
+# Retry backoff after a failed sync (CLAUDE.md §10e): 1st failure retries in an
+# hour, 2nd in 4 hours, 3rd+ every 24 hours (which also converges with the
+# regular daily cron, so an ongoing outage never gets hammered).
+RETRY_BACKOFF_SECONDS = [3600, 14400, 86400]
+
+
+def _retry_delay_for(consecutive_failures: int) -> int:
+    index = min(consecutive_failures, len(RETRY_BACKOFF_SECONDS)) - 1
+    return RETRY_BACKOFF_SECONDS[index]
+
+
+def _schedule_retry_after_failure(session: Session) -> None:
+    consecutive_failures = count_consecutive_failed_runs(session)
+    delay = _retry_delay_for(consecutive_failures)
+    logger.info(
+        "Scheduling sync retry: consecutive_failures=%s delay=%ss", consecutive_failures, delay
+    )
+    schedule_sync_retry(delay)
 
 
 def is_sync_in_progress() -> bool:
@@ -135,6 +160,9 @@ def run_sync(db: Session | None = None) -> str:
                     generate_sync_recovered_notification(session, profile.id, sync_run_id=run.id)
             session.commit()
 
+        # Data is fresh again (whether this run succeeded outright or only
+        # partially) -- any retry scheduled after a prior failure is now moot.
+        cancel_sync_retry()
         return run.id
 
     except IrdClientError as exc:
@@ -144,12 +172,14 @@ def run_sync(db: Session | None = None) -> str:
         for profile in list_all_profiles(session):
             generate_sync_failed_notification(session, profile.id, sync_run_id=run.id)
         session.commit()
+        _schedule_retry_after_failure(session)
         return run.id
     except Exception as exc:  # noqa: BLE001 - never let a sync crash the scheduler
         session.rollback()
         logger.exception("Sync failed (unexpected error)")
         finish_sync_run(session, run, status="failed", error_message=str(exc))
         session.commit()
+        _schedule_retry_after_failure(session)
         return run.id
     finally:
         _sync_in_progress = False

@@ -5,6 +5,16 @@ Payload shapes mirror the real IRD API response (see RESEARCH.md / CLAUDE.md
 only the HTTP transport mocked (via httpx.MockTransport in the test file).
 """
 
+# (name, consecutive_failures_including_this_one, expected_retry_delay_seconds)
+# CLAUDE.md §10e: retry after 1h, then 4h, then 24h (clamped after that).
+RETRY_BACKOFF_CASES = [
+    ("first_failure", 1, 3600),
+    ("second_failure", 2, 14400),
+    ("third_failure", 3, 86400),
+    ("fourth_failure_stays_at_24h", 4, 86400),
+    ("tenth_failure_stays_at_24h", 10, 86400),
+]
+
 INITIAL_SYNC_PAGE = {
     "limit": 100,
     "offset": 0,
