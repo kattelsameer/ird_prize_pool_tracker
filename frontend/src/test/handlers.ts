@@ -6,7 +6,6 @@ import {
   fixturePrizePools,
   fixtureSettings,
   fixtureSyncStatus,
-  paginated,
 } from "./fixtures";
 import type { Coupon, CouponInput } from "../api/types";
 
@@ -27,11 +26,17 @@ export const handlers = [
     const search = url.searchParams.get("search")?.toLowerCase() ?? "";
     const fiscalYear = url.searchParams.get("fiscal_year") ?? "";
     const network = url.searchParams.get("network") ?? "";
+    const limit = Number(url.searchParams.get("limit") ?? 20);
+    const offset = Number(url.searchParams.get("offset") ?? 0);
+
     let filtered = coupons;
     if (search) filtered = filtered.filter((c) => c.coupon_code.toLowerCase().includes(search));
     if (fiscalYear) filtered = filtered.filter((c) => c.fiscal_year === fiscalYear);
     if (network) filtered = filtered.filter((c) => c.network === network);
-    return HttpResponse.json(paginated(filtered));
+
+    const total = filtered.length;
+    const page = filtered.slice(offset, offset + limit);
+    return HttpResponse.json({ items: page, total, limit, offset });
   }),
 
   http.post(`${BASE}/api/coupons`, async ({ request }) => {
@@ -70,8 +75,26 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.get(`${BASE}/api/prize-pools`, () => {
-    return HttpResponse.json(paginated(fixturePrizePools));
+  http.get(`${BASE}/api/prize-pools`, ({ request }) => {
+    const url = new URL(request.url);
+    const fiscalYear = url.searchParams.get("fiscal_year") ?? "";
+    const category = url.searchParams.get("category") ?? "";
+    const claimStatus = url.searchParams.get("claim_status") ?? "";
+    const couponCode = url.searchParams.get("coupon_code")?.toLowerCase() ?? "";
+    const limit = Number(url.searchParams.get("limit") ?? 20);
+    const offset = Number(url.searchParams.get("offset") ?? 0);
+
+    let filtered = fixturePrizePools;
+    if (fiscalYear) filtered = filtered.filter((p) => p.fiscal_year === fiscalYear);
+    if (category) filtered = filtered.filter((p) => p.category === category);
+    if (claimStatus) filtered = filtered.filter((p) => p.claim_status === claimStatus);
+    if (couponCode) {
+      filtered = filtered.filter((p) => p.normalized_coupon_code.toLowerCase().includes(couponCode));
+    }
+
+    const total = filtered.length;
+    const page = filtered.slice(offset, offset + limit);
+    return HttpResponse.json({ items: page, total, limit, offset });
   }),
 
   http.get(`${BASE}/api/prize-pools/:id`, ({ params }) => {
@@ -82,9 +105,11 @@ export const handlers = [
 
   http.get(`${BASE}/api/matches`, () => HttpResponse.json(fixtureMatches)),
   http.get(`${BASE}/api/wins`, () => HttpResponse.json(fixtureMatches)),
-  http.get(`${BASE}/api/claims`, () => HttpResponse.json(fixturePrizePools)),
+  http.get(`${BASE}/api/claims`, () => HttpResponse.json(fixtureMatches)),
 
-  http.get(`${BASE}/api/notifications`, () => HttpResponse.json(notifications)),
+  http.get(`${BASE}/api/notifications`, () =>
+    HttpResponse.json({ items: notifications, total: notifications.length, limit: 50, offset: 0 })
+  ),
   http.post(`${BASE}/api/notifications/:id/read`, ({ params }) => {
     notifications = notifications.map((n) =>
       n.id === params.id ? { ...n, read_at: new Date().toISOString() } : n

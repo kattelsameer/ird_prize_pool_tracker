@@ -2,11 +2,19 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.core.timeutil import now_kathmandu
+from app.domain.claim_status import EXPIRING_THRESHOLD
 from app.integrations.ird.adapter import NormalizedWinnerRecord
 from app.models.prize_pool import PrizePoolWinner
+
+_SORT_COLUMNS = {
+    "published_at": PrizePoolWinner.published_at,
+    "coupon_code": PrizePoolWinner.normalized_coupon_code,
+    "claim_deadline": PrizePoolWinner.claim_deadline,
+}
 
 
 def upsert_winner(
@@ -69,10 +77,22 @@ def list_winners(
     date_from: date | None = None,
     date_to: date | None = None,
     claim_open: bool | None = None,
+    claim_status: str | None = None,
     limit: int = 50,
     offset: int = 0,
-    sort_desc: bool = True,
+    sort: str = "-published_at",
 ) -> tuple[list[PrizePoolWinner], int]:
+    """`claim_status` filters by the same derived CLAIM_ACTIVE/CLAIM_EXPIRING/
+    CLAIM_EXPIRED states as app.domain.claim_status.compute_claim_status --
+    reusing its EXPIRING_THRESHOLD constant so the two never drift apart.
+    Unlike claim_open (a stored column), claim_status is derived from "now",
+    so it's expressed here as a boundary comparison against claim_deadline
+    rather than a stored value.
+
+    `sort` is `<field>` (ascending) or `-<field>` (descending); `field` is one
+    of _SORT_COLUMNS' keys, defaulting to published_at (descending) for an
+    unrecognized/empty value.
+    """
     stmt = select(PrizePoolWinner)
     if fiscal_year:
         stmt = stmt.where(PrizePoolWinner.prize_fiscal_year_code == fiscal_year)
@@ -86,9 +106,33 @@ def list_winners(
         stmt = stmt.where(PrizePoolWinner.eligible_to <= date_to)
     if claim_open is not None:
         stmt = stmt.where(PrizePoolWinner.claim_open == claim_open)
+    if claim_status:
+        now = now_kathmandu()
+        expiring_boundary = now + EXPIRING_THRESHOLD
+        if claim_status == "CLAIM_EXPIRED":
+            stmt = stmt.where(
+                or_(PrizePoolWinner.claim_deadline <= now, PrizePoolWinner.claim_open.is_(False))
+            )
+        elif claim_status == "CLAIM_EXPIRING":
+            stmt = stmt.where(
+                PrizePoolWinner.claim_open.is_(True),
+                PrizePoolWinner.claim_deadline > now,
+                PrizePoolWinner.claim_deadline < expiring_boundary,
+            )
+        elif claim_status == "CLAIM_ACTIVE":
+            stmt = stmt.where(
+                PrizePoolWinner.claim_open.is_(True),
+                PrizePoolWinner.claim_deadline >= expiring_boundary,
+            )
 
     total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
-    order_col = PrizePoolWinner.published_at.desc() if sort_desc else PrizePoolWinner.published_at.asc()
+
+    field = sort[1:] if sort.startswith("-") else sort
+    column = _SORT_COLUMNS.get(field, PrizePoolWinner.published_at)
+    # Unrecognized/empty field falls back to published_at descending (the default view).
+    descending = sort.startswith("-") or field not in _SORT_COLUMNS
+    order_col = column.desc() if descending else column.asc()
+
     stmt = stmt.order_by(order_col).limit(limit).offset(offset)
     items = list(db.execute(stmt).scalars().all())
     return items, total

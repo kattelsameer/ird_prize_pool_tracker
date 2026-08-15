@@ -1,9 +1,9 @@
 // Deterministic test fixtures. Never labeled or usable as real government data (§58).
+import type { Paginated } from "../api/client";
 import type {
   AppNotification,
   Coupon,
   MatchResult,
-  Paginated,
   PrizePool,
   Settings,
   SyncStatus,
@@ -51,6 +51,7 @@ export const fixturePrizePools: PrizePool[] = [
     source_record_id: "draw_bumper_1",
     draw_id: "draw_bumper_1",
     draw_title_en: "Bumper Winner Consumer Selection for the period of Shrawan 1 to 15",
+    draw_title_np: null,
     category: "Bumper Prize",
     prize_amount: 1_000_000,
     prize_amount_net: 750_000,
@@ -73,6 +74,7 @@ export const fixturePrizePools: PrizePool[] = [
     source_record_id: "draw_daily_1",
     draw_id: "draw_daily_1",
     draw_title_en: "Daily Winner Consumer Selection for the period of Shrawan 16 to 31",
+    draw_title_np: null,
     category: "Daily Prize",
     prize_amount: 133_334,
     prize_amount_net: 100_000,
@@ -95,6 +97,7 @@ export const fixturePrizePools: PrizePool[] = [
     source_record_id: "draw_daily_0",
     draw_id: "draw_daily_0",
     draw_title_en: "Daily Winner Consumer Selection for the period of Ashadh 16 to 31, 2082",
+    draw_title_np: null,
     category: "Daily Prize",
     prize_amount: 133_334,
     prize_amount_net: 100_000,
@@ -114,18 +117,42 @@ export const fixturePrizePools: PrizePool[] = [
   },
 ];
 
+// Mirrors the backend's flat MatchRead shape (app/schemas/match.py) exactly -- no nested
+// coupon/winner sub-objects, matching what /api/matches, /api/wins, /api/claims actually return.
 export const fixtureMatches: MatchResult[] = [
   {
-    coupon: fixtureCoupons[0],
-    winner: fixturePrizePools[0],
-    claim_status: "CLAIM_ACTIVE",
+    coupon_id: fixtureCoupons[0].id,
+    coupon_code: fixtureCoupons[0].coupon_code,
+    draw_id: fixturePrizePools[0].draw_id,
+    prize_coupon_number: fixturePrizePools[0].coupon_code,
+    winner_rank: 1,
+    category_title_en: fixturePrizePools[0].category,
+    draw_type: "GENERAL",
+    draw_title_en: fixturePrizePools[0].draw_title_en,
     fiscal_year_unconfirmed: false,
+    eligible_period_warning: false,
+    claim_status: "CLAIM_ACTIVE",
+    claim_deadline: fixturePrizePools[0].claim_deadline,
+    claim_open: fixturePrizePools[0].claim_open,
+    message:
+      "Your coupon matches a result published by IRD for the \"Bumper Winner Consumer Selection for the period of Shrawan 1 to 15\" draw. To claim, you must provide the original physical bill and PAN in person at an Inland Revenue Office before the claim deadline.",
   },
   {
-    coupon: fixtureCoupons[1],
-    winner: fixturePrizePools[1],
-    claim_status: "CLAIM_EXPIRING",
+    coupon_id: fixtureCoupons[1].id,
+    coupon_code: fixtureCoupons[1].coupon_code,
+    draw_id: fixturePrizePools[1].draw_id,
+    prize_coupon_number: fixturePrizePools[1].coupon_code,
+    winner_rank: 1,
+    category_title_en: fixturePrizePools[1].category,
+    draw_type: "GENERAL",
+    draw_title_en: fixturePrizePools[1].draw_title_en,
     fiscal_year_unconfirmed: false,
+    eligible_period_warning: false,
+    claim_status: "CLAIM_EXPIRING",
+    claim_deadline: fixturePrizePools[1].claim_deadline,
+    claim_open: fixturePrizePools[1].claim_open,
+    message:
+      "Your coupon matches a result published by IRD for the \"Daily Winner Consumer Selection for the period of Shrawan 16 to 31\" draw. To claim, you must provide the original physical bill and PAN in person at an Inland Revenue Office before the claim deadline.",
   },
 ];
 
@@ -178,6 +205,6 @@ export const fixtureSyncStatus: SyncStatus = {
   },
 };
 
-export function paginated<T>(items: T[], page = 1, page_size = 20): Paginated<T> {
-  return { items, total: items.length, page, page_size };
+export function paginated<T>(items: T[], limit = 20, offset = 0): Paginated<T> {
+  return { items, total: items.length, limit, offset };
 }
