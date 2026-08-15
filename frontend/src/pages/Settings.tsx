@@ -1,10 +1,128 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAddNetwork, useSettings, useUpdateNetwork, useUpdateSettings } from "../api/settings";
 import { useSyncStatus, useTriggerSync } from "../api/sync";
+import { useCurrentUser, useLogout } from "../api/auth";
+import { useDeleteAccount, useExportAccountData, useProfile, useUpdateProfile } from "../api/profile";
 import { LoadingState } from "../components/LoadingState";
 import { ErrorState } from "../components/ErrorState";
+import { Modal } from "../components/Modal";
 import type { SettingsUpdate } from "../api/types";
 import styles from "./Settings.module.css";
+
+function downloadJson(filename: string, data: unknown) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function AccountSection() {
+  const currentUser = useCurrentUser();
+  const profile = useProfile();
+  const updateProfile = useUpdateProfile();
+  const exportData = useExportAccountData();
+  const deleteAccount = useDeleteAccount();
+  const logout = useLogout();
+  const navigate = useNavigate();
+
+  const [displayName, setDisplayName] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  useEffect(() => {
+    if (profile.data) setDisplayName(profile.data.display_name ?? "");
+  }, [profile.data]);
+
+  function handleSaveDisplayName(event: FormEvent) {
+    event.preventDefault();
+    updateProfile.mutate({ display_name: displayName.trim() || null });
+  }
+
+  function handleExport() {
+    exportData.mutate(undefined, {
+      onSuccess: (data) => downloadJson(`couponsathi-my-data-${data.exported_at.slice(0, 10)}.json`, data),
+    });
+  }
+
+  function handleConfirmDelete() {
+    deleteAccount.mutate(undefined, {
+      onSuccess: () => {
+        logout();
+        navigate("/login", { replace: true });
+      },
+    });
+  }
+
+  return (
+    <section className={styles.section} aria-label="Account">
+      <h2>Account</h2>
+      {currentUser.data && (
+        <p>
+          Signed in as <strong>{currentUser.data.email}</strong>
+        </p>
+      )}
+
+      <form onSubmit={handleSaveDisplayName} className={styles.accountForm}>
+        <label htmlFor="display-name">Display name</label>
+        <input
+          id="display-name"
+          className={styles.networkInput}
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder="e.g. Ram Bahadur"
+        />
+        <button type="submit" className={styles.saveButton} disabled={updateProfile.isPending}>
+          {updateProfile.isPending ? "Saving…" : "Save name"}
+        </button>
+      </form>
+      {updateProfile.isSuccess && <p role="status">Display name saved.</p>}
+      {updateProfile.isError && <ErrorState error={updateProfile.error} />}
+
+      <div>
+        <h3>Your data</h3>
+        <p>
+          Download a copy of everything you've entered (your profile and coupons), or permanently
+          delete your account and all associated data.
+        </p>
+        <div className={styles.addNetworkRow}>
+          <button type="button" onClick={handleExport} disabled={exportData.isPending}>
+            {exportData.isPending ? "Preparing…" : "Download my data"}
+          </button>
+          <button type="button" className={styles.removeButton} onClick={() => setConfirmingDelete(true)}>
+            Delete my account
+          </button>
+        </div>
+        {exportData.isError && <ErrorState error={exportData.error} />}
+      </div>
+
+      {confirmingDelete && (
+        <Modal title="Delete your account?" onClose={() => setConfirmingDelete(false)}>
+          <p>
+            This permanently deletes your account, profile, and every coupon you've entered. This
+            cannot be undone.
+          </p>
+          {deleteAccount.isError && <ErrorState error={deleteAccount.error} />}
+          <div className={styles.addNetworkRow}>
+            <button
+              type="button"
+              className={styles.removeButton}
+              onClick={handleConfirmDelete}
+              disabled={deleteAccount.isPending}
+            >
+              {deleteAccount.isPending ? "Deleting…" : "Yes, delete my account"}
+            </button>
+            <button type="button" onClick={() => setConfirmingDelete(false)}>
+              Cancel
+            </button>
+          </div>
+        </Modal>
+      )}
+    </section>
+  );
+}
 
 export function Settings() {
   const settings = useSettings();
@@ -49,6 +167,8 @@ export function Settings() {
   return (
     <div className={styles.page}>
       <h1>Settings</h1>
+
+      <AccountSection />
 
       <section className={styles.section} aria-label="Networks">
         <h2>Networks / payment methods</h2>

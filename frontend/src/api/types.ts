@@ -5,9 +5,18 @@
 
 export interface Profile {
   id: string;
-  display_name: string;
+  display_name: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Personal-data export bundle (CLAUDE.md §10d). Notifications and government
+// prize-pool records are deliberately excluded -- see app/schemas/account.py.
+export interface AccountExport {
+  exported_at: string;
+  account_email: string;
+  profile: Profile;
+  coupons: Coupon[];
 }
 
 export interface User {
