@@ -152,8 +152,11 @@ export function Dashboard() {
             onClick={() => triggerSync.mutate()}
             disabled={triggerSync.isPending || syncStatus.data?.is_running}
           >
-            {triggerSync.isPending ? "Syncing…" : "Sync now"}
+            {triggerSync.isPending || syncStatus.data?.is_running ? "Syncing…" : "Sync now"}
           </button>
+          {triggerSync.data && !triggerSync.data.accepted && (
+            <p role="status">{triggerSync.data.message}</p>
+          )}
           {triggerSync.isError && <ErrorState error={triggerSync.error} />}
         </div>
       </section>
