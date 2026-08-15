@@ -18,7 +18,8 @@ const TYPE_ICON: Record<NotificationType, string> = {
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { data: notifications = [], isLoading, isError } = useNotifications();
+  const { data, isLoading, isError } = useNotifications();
+  const notifications = data?.items ?? [];
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
 

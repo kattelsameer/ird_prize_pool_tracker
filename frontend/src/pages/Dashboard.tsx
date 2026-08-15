@@ -25,7 +25,7 @@ export function Dashboard() {
     [wins.data]
   );
   const newMatchNotifications = useMemo(
-    () => (notifications.data ?? []).filter((n) => n.type === "NEW_MATCH" && !n.read_at),
+    () => (notifications.data?.items ?? []).filter((n) => n.type === "NEW_MATCH" && !n.read_at),
     [notifications.data]
   );
   const syncFailed = syncStatus.data?.last_sync?.status === "FAILED";
@@ -47,9 +47,9 @@ export function Dashboard() {
           )}
           {expiringWins.map((win) => (
             <NoticeBanner
-              key={`${win.coupon.id}-${win.winner.id}`}
+              key={`${win.coupon_id}-${win.draw_id}`}
               tone="warning"
-              title={`Claim deadline approaching for coupon ${win.coupon.coupon_code}`}
+              title={`Claim deadline approaching for coupon ${win.coupon_code}`}
             >
               Your claim window closes soon. Visit an Inland Revenue Office in person with your
               original bill, photo ID, PAN, and bank details before the deadline.
@@ -83,7 +83,7 @@ export function Dashboard() {
         {wins.isSuccess && wins.data.length > 0 && (
           <div className={styles.winners}>
             {wins.data.map((match) => (
-              <WinnerCard key={`${match.coupon.id}-${match.winner.id}`} match={match} />
+              <WinnerCard key={`${match.coupon_id}-${match.draw_id}`} match={match} />
             ))}
           </div>
         )}

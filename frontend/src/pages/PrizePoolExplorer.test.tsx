@@ -15,7 +15,7 @@ describe("PrizePoolExplorer page", () => {
   it("shows an empty state when no records match the filters", async () => {
     server.use(
       http.get("http://localhost:8000/api/prize-pools", () =>
-        HttpResponse.json({ items: [], total: 0, page: 1, page_size: 20 })
+        HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 })
       )
     );
     renderWithProviders(<PrizePoolExplorer />);

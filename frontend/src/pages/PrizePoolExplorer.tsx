@@ -38,7 +38,7 @@ export function PrizePoolExplorer() {
   }
 
   const totalPages = prizePools.data
-    ? Math.max(1, Math.ceil(prizePools.data.total / prizePools.data.page_size))
+    ? Math.max(1, Math.ceil(prizePools.data.total / prizePools.data.limit))
     : 1;
 
   return (

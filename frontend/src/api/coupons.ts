@@ -6,7 +6,6 @@ export interface CouponFilters {
   search?: string;
   fiscal_year?: string;
   network?: string;
-  match_status?: string;
   page?: number;
   page_size?: number;
 }
@@ -16,17 +15,20 @@ export function couponsKey(filters: CouponFilters = {}) {
 }
 
 export function useCoupons(filters: CouponFilters = {}) {
+  const pageSize = filters.page_size ?? 20;
+  const page = filters.page ?? 1;
   return useQuery({
     queryKey: couponsKey(filters),
     queryFn: () =>
+      // The backend paginates by limit/offset, not page number (app/api/coupons.py);
+      // page/page_size here is just a friendlier shape for the UI to think in.
       api.get<Paginated<Coupon>>(
         `/api/coupons${buildQuery({
           search: filters.search,
           fiscal_year: filters.fiscal_year,
           network: filters.network,
-          match_status: filters.match_status,
-          page: filters.page ?? 1,
-          page_size: filters.page_size ?? 20,
+          limit: pageSize,
+          offset: (page - 1) * pageSize,
         })}`
       ),
     placeholderData: (prev) => prev,

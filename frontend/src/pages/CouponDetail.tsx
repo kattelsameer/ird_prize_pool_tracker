@@ -26,7 +26,7 @@ export function CouponDetail() {
   if (coupon.isError) return <ErrorState error={coupon.error} onRetry={() => coupon.refetch()} />;
   if (!coupon.data) return <ErrorState error={null} fallbackMessage="Coupon not found." />;
 
-  const match = (matches.data ?? []).find((m) => m.coupon.id === coupon.data.id);
+  const match = (matches.data ?? []).find((m) => m.coupon_id === coupon.data.id);
   const status: MatchStatus = match ? match.claim_status : "NO_MATCH";
 
   function handleUpdate(input: CouponInput) {

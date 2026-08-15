@@ -26,8 +26,15 @@ export async function installMockApi(page: Page) {
       const filtered = search
         ? coupons.filter((c) => c.coupon_code.toLowerCase().includes(search))
         : coupons;
+      const limit = Number(url.searchParams.get("limit") ?? 20);
+      const offset = Number(url.searchParams.get("offset") ?? 0);
       await route.fulfill({
-        json: { items: filtered, total: filtered.length, page: 1, page_size: 20 },
+        json: {
+          items: filtered.slice(offset, offset + limit),
+          total: filtered.length,
+          limit,
+          offset,
+        },
       });
       return;
     }
@@ -78,7 +85,7 @@ export async function installMockApi(page: Page) {
 
   await page.route("**/api/prize-pools**", async (route) => {
     await route.fulfill({
-      json: { items: fixturePrizePools, total: fixturePrizePools.length, page: 1, page_size: 20 },
+      json: { items: fixturePrizePools, total: fixturePrizePools.length, limit: 20, offset: 0 },
     });
   });
 
@@ -89,12 +96,14 @@ export async function installMockApi(page: Page) {
     await route.fulfill({ json: fixtureMatches });
   });
   await page.route("**/api/claims", async (route) => {
-    await route.fulfill({ json: fixturePrizePools });
+    await route.fulfill({ json: fixtureMatches });
   });
 
-  await page.route("**/api/notifications", async (route) => {
+  await page.route("**/api/notifications**", async (route) => {
     if (route.request().method() === "GET") {
-      await route.fulfill({ json: notifications });
+      await route.fulfill({
+        json: { items: notifications, total: notifications.length, limit: 50, offset: 0 },
+      });
       return;
     }
     await route.continue();

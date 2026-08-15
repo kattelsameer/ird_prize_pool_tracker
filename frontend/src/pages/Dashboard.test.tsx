@@ -16,6 +16,17 @@ describe("Dashboard page", () => {
     });
   });
 
+  it("shows a new-match notice banner sourced from the paginated notifications response", async () => {
+    // Regression test: GET /api/notifications returns a Page[NotificationRead]
+    // ({items, total, limit, offset}), not a bare array. Dashboard must read
+    // notifications.data.items, not notifications.data, or this throws
+    // "(n.data ?? []).filter is not a function" and the whole page crashes.
+    renderWithProviders(<Dashboard />);
+
+    expect(await screen.findByText(/new match found/i)).toBeInTheDocument();
+    expect(screen.getByText(/matches the bumper prize draw/i)).toBeInTheDocument();
+  });
+
   it("shows a sync-failed notice when the last sync failed", async () => {
     server.use(
       http.get("http://localhost:8000/api/sync/status", () =>
