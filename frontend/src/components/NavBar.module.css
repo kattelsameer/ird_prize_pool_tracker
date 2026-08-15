@@ -1,11 +1,16 @@
 .header {
   display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  padding: var(--space-3) var(--space-5);
+  flex-direction: column;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  flex-wrap: wrap;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5);
 }
 
 .brand {
@@ -20,7 +25,7 @@
   display: flex;
   gap: var(--space-4);
   flex-wrap: wrap;
-  flex: 1;
+  padding: 0 var(--space-5) var(--space-3);
 }
 
 .link {
@@ -47,13 +52,58 @@
   gap: var(--space-3);
 }
 
+.menuButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.menuButton:hover {
+  background: var(--color-bg);
+}
+
 @media (max-width: 640px) {
-  .header {
-    gap: var(--space-3);
+  .topRow {
+    padding: var(--space-3) var(--space-4);
   }
+
+  .menuButton {
+    display: flex;
+  }
+
+  /* Collapsed by default on mobile; the menu button toggles .navOpen. Layout
+     (not just visibility) changes so the closed nav doesn't reserve space --
+     CLAUDE.md §46 asks for a real responsive layout, not a shrunk desktop one. */
   .nav {
-    order: 3;
-    width: 100%;
-    justify-content: space-between;
+    display: none;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .navOpen {
+    display: flex;
+  }
+
+  .link {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    border-left: 3px solid transparent;
+  }
+
+  .active {
+    border-bottom-color: var(--color-border);
+    border-left-color: var(--color-primary);
+    background: var(--color-bg);
   }
 }

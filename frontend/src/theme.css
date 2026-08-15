@@ -60,15 +60,7 @@
   --focus-ring: 0 0 0 3px rgba(11, 95, 255, 0.35);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #0f1216;
-    --color-surface: #171b21;
-    --color-border: #2a2f37;
-    --color-text: #edf0f3;
-    --color-text-muted: #a3abb6;
-  }
-}
+/* Light theme only for now -- no dark-mode media query. */
 
 * {
   box-sizing: border-box;
