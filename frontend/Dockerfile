@@ -1,0 +1,32 @@
+# --- Build stage ---
+FROM node:20-alpine AS build
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+# Uses `npm install` rather than `npm ci` because this repo does not yet have a committed
+# package-lock.json (it could not be generated in the environment this project was authored
+# in — see README/limitations). Once a lockfile is committed, switch this back to `npm ci`
+# for fully reproducible builds.
+RUN npm install
+
+COPY . .
+
+# Baked in at build time. Leave empty so requests go to the same origin ("/api/..."),
+# which nginx (below) reverse-proxies to the backend container.
+ARG VITE_API_BASE_URL=""
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
+RUN npm run build
+
+# --- Runtime stage ---
+FROM nginx:alpine AS runtime
+
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -q --spider http://localhost/ || exit 1
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
