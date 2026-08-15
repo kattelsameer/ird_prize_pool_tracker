@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { NotificationBell } from "./NotificationBell";
 import styles from "./NavBar.module.css";
 
@@ -11,12 +12,59 @@ const LINKS = [
 ];
 
 export function NavBar() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const location = useLocation();
+  const navId = "primary-navigation";
+
+  // Close the mobile menu on route change, Escape, or a click outside it -- same
+  // interaction pattern as NotificationBell's panel.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
   return (
-    <header className={styles.header}>
-      <div className={styles.brand}>
-        <span aria-hidden="true">🎟</span> CouponSathi
+    <header className={styles.header} ref={headerRef}>
+      <div className={styles.topRow}>
+        <div className={styles.brand}>
+          <span aria-hidden="true">🎟</span> CouponSathi
+        </div>
+        <div className={styles.actions}>
+          <NotificationBell />
+          <button
+            type="button"
+            className={styles.menuButton}
+            aria-expanded={menuOpen}
+            aria-controls={navId}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span aria-hidden="true">{menuOpen ? "✕" : "☰"}</span>
+          </button>
+        </div>
       </div>
-      <nav className={styles.nav} aria-label="Main navigation">
+      <nav
+        id={navId}
+        className={`${styles.nav} ${menuOpen ? styles.navOpen : ""}`}
+        aria-label="Main navigation"
+      >
         {LINKS.map((link) => (
           <NavLink
             key={link.to}
@@ -28,9 +76,6 @@ export function NavBar() {
           </NavLink>
         ))}
       </nav>
-      <div className={styles.actions}>
-        <NotificationBell />
-      </div>
     </header>
   );
 }
