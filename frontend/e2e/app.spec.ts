@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { installMockApi } from "./mockApi";
+import { installMockApi, E2E_TEST_PASSWORD } from "./mockApi";
+import { fixtureUser } from "../src/test/fixtures";
 
 test.describe("Consumer journey", () => {
   test.beforeEach(async ({ page }) => {
@@ -9,8 +10,11 @@ test.describe("Consumer journey", () => {
   test("open app, manage a coupon, sync, explore prize pool, see a winner, and read a notification", async ({
     page,
   }) => {
-    // 1. Open app -> dashboard loads.
-    await page.goto("/");
+    // 1. Log in -> redirected to the dashboard.
+    await page.goto("/login");
+    await page.getByLabel(/email/i).fill(fixtureUser.email);
+    await page.getByLabel(/password/i).fill(E2E_TEST_PASSWORD);
+    await page.getByRole("button", { name: /^log in$/i }).click();
     await expect(page.getByRole("heading", { name: /needs your attention/i })).toBeVisible();
 
     // 2. Add a coupon.
@@ -68,5 +72,26 @@ test.describe("Consumer journey", () => {
     await page.getByRole("link", { name: /my coupons/i }).click();
     await page.reload();
     await expect(page.getByText("555566667777")).toBeVisible();
+  });
+
+  test("registers a new account, logs out, then logs back in", async ({ page }) => {
+    // Register.
+    await page.goto("/register");
+    await page.getByLabel(/email/i).fill("new-e2e-user@example.com");
+    await page.getByLabel(/password/i).fill("a-long-enough-password");
+    await page.getByRole("button", { name: /create account/i }).click();
+    await expect(page.getByRole("heading", { name: /needs your attention/i })).toBeVisible();
+
+    // Log out -> redirected to login, protected routes no longer reachable.
+    await page.getByRole("button", { name: /log out/i }).click();
+    await expect(page).toHaveURL(/\/login$/);
+    await page.goto("/coupons");
+    await expect(page).toHaveURL(/\/login$/);
+
+    // Log back in with the seeded fixture account.
+    await page.getByLabel(/email/i).fill(fixtureUser.email);
+    await page.getByLabel(/password/i).fill(E2E_TEST_PASSWORD);
+    await page.getByRole("button", { name: /^log in$/i }).click();
+    await expect(page.getByRole("heading", { name: /needs your attention/i })).toBeVisible();
   });
 });

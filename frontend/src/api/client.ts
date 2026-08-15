@@ -10,6 +10,25 @@
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
+// Auth token storage. A plain localStorage key (not a cookie) since this is a pure SPA + JSON
+// API split with no server-rendered pages to protect from CSRF via a cookie-based session.
+const TOKEN_KEY = "couponsathi_token";
+
+export function getStoredToken(): string | null {
+  // window.localStorage, not the bare global: recent Node versions define their own
+  // experimental native `localStorage` global that throws without a --localstorage-file
+  // flag, which can shadow jsdom's real implementation in tests if referenced bare.
+  return window.localStorage.getItem(TOKEN_KEY);
+}
+
+export function setStoredToken(token: string): void {
+  window.localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearStoredToken(): void {
+  window.localStorage.removeItem(TOKEN_KEY);
+}
+
 export class ApiError extends Error {
   status?: number;
   cause?: unknown;
@@ -45,6 +64,7 @@ export function buildQuery(params: Record<string, QueryValue>): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getStoredToken();
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
@@ -52,6 +72,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: {
         Accept: "application/json",
         ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init?.headers,
       },
     });
@@ -75,6 +96,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     console.error(
       `API request returned ${response.status}: ${init?.method ?? "GET"} ${path}`
     );
+    if (response.status === 401) {
+      // Token missing/expired/invalid -- drop it so the next render treats the
+      // user as logged out rather than repeatedly retrying with a dead token.
+      clearStoredToken();
+    }
     throw new ApiError(
       detail ?? "Something went wrong on our end. Please try again shortly.",
       { status: response.status }

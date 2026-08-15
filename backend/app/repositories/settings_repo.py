@@ -6,10 +6,12 @@ from sqlalchemy.orm import Session
 from app.models.settings import AppSettings
 
 
-def get_or_create_settings(db: Session) -> AppSettings:
-    settings = db.execute(select(AppSettings).where(AppSettings.id == "singleton")).scalar_one_or_none()
+def get_or_create_settings(db: Session, profile_id: str) -> AppSettings:
+    settings = db.execute(
+        select(AppSettings).where(AppSettings.profile_id == profile_id)
+    ).scalar_one_or_none()
     if settings is None:
-        settings = AppSettings(id="singleton")
+        settings = AppSettings(profile_id=profile_id)
         db.add(settings)
         db.commit()
         db.refresh(settings)

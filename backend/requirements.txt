@@ -5,6 +5,11 @@ uvicorn[standard]==0.34.0
 # Validation / settings
 pydantic==2.13.3
 pydantic-settings==2.14.2  # GHSA-4xgf-cpjx-pc3j (symlink traversal in NestedSecretsSettingsSource; unused here, patched anyway)
+email-validator==2.2.0  # Pydantic EmailStr backend, used by auth schemas
+
+# Auth: password hashing + JWT
+bcrypt==4.2.1
+pyjwt==2.13.0
 
 # ORM / migrations
 sqlalchemy==2.0.36

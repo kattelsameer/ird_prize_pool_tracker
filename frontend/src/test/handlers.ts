@@ -7,10 +7,13 @@ import {
   fixturePrizePools,
   fixtureSettings,
   fixtureSyncStatus,
+  fixtureUser,
 } from "./fixtures";
-import type { Coupon, CouponInput, Network } from "../api/types";
+import type { Coupon, CouponInput, Network, User } from "../api/types";
 
 const BASE = "http://localhost:8000";
+
+export const TEST_USER_PASSWORD = "test-password-123";
 
 // Mutable in-memory copies so create/update/delete tests can observe changes within a test file.
 let coupons: Coupon[] = [...fixtureCoupons];
@@ -18,11 +21,19 @@ let notifications = [...fixtureNotifications];
 let networks: Network[] = [...fixtureNetworks];
 let settings = { ...fixtureSettings };
 
+type RegisteredUser = { email: string; password: string; user: User };
+let registeredUsers: RegisteredUser[] = [
+  { email: fixtureUser.email, password: TEST_USER_PASSWORD, user: fixtureUser },
+];
+let issuedTokens: Record<string, User> = { "fixture-token": fixtureUser };
+
 export function resetMockData() {
   coupons = [...fixtureCoupons];
   notifications = [...fixtureNotifications];
   networks = [...fixtureNetworks];
   settings = { ...fixtureSettings };
+  registeredUsers = [{ email: fixtureUser.email, password: TEST_USER_PASSWORD, user: fixtureUser }];
+  issuedTokens = { "fixture-token": fixtureUser };
 }
 
 export const handlers = [
@@ -148,6 +159,48 @@ export const handlers = [
 
   http.get(`${BASE}/api/sync/status`, () => HttpResponse.json(fixtureSyncStatus)),
   http.post(`${BASE}/api/sync`, () => HttpResponse.json(fixtureSyncStatus)),
+
+  http.post(`${BASE}/api/auth/register`, async ({ request }) => {
+    const body = (await request.json()) as { email: string; password: string };
+    const email = body.email.trim().toLowerCase();
+    if (registeredUsers.some((u) => u.email === email)) {
+      return HttpResponse.json(
+        { detail: "An account with this email already exists" },
+        { status: 409 }
+      );
+    }
+    const user: User = {
+      id: `user-${registeredUsers.length + 1}`,
+      email,
+      created_at: new Date().toISOString(),
+    };
+    const token = `token-${user.id}`;
+    registeredUsers = [...registeredUsers, { email, password: body.password, user }];
+    issuedTokens = { ...issuedTokens, [token]: user };
+    return HttpResponse.json({ access_token: token, token_type: "bearer", user }, { status: 201 });
+  }),
+
+  http.post(`${BASE}/api/auth/login`, async ({ request }) => {
+    const body = (await request.json()) as { email: string; password: string };
+    const email = body.email.trim().toLowerCase();
+    const match = registeredUsers.find((u) => u.email === email && u.password === body.password);
+    if (!match) {
+      return HttpResponse.json({ detail: "Incorrect email or password" }, { status: 401 });
+    }
+    const token = `token-${match.user.id}`;
+    issuedTokens = { ...issuedTokens, [token]: match.user };
+    return HttpResponse.json({ access_token: token, token_type: "bearer", user: match.user });
+  }),
+
+  http.get(`${BASE}/api/auth/me`, ({ request }) => {
+    const authHeader = request.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const user = issuedTokens[token];
+    if (!user) {
+      return HttpResponse.json({ detail: "Not authenticated" }, { status: 401 });
+    }
+    return HttpResponse.json(user);
+  }),
 
   http.get(`${BASE}/api/profile`, () =>
     HttpResponse.json({

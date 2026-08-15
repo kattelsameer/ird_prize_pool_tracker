@@ -68,8 +68,45 @@ def db_session():
         engine.dispose()
 
 
+TEST_USER_EMAIL = "test-user@example.com"
+TEST_USER_PASSWORD = "test-password-123"
+
+
 @pytest.fixture()
 def client(db_session):
+    """Registers a real test account and attaches its access token to every
+    request by default, so the existing suite of route tests exercises the
+    real auth path end-to-end (not a bypassed dependency override) --
+    catching any regression that breaks auth for every protected route, not
+    just the dedicated auth tests. Use `unauthenticated_client` instead for
+    tests that specifically need to exercise the no-token/invalid-token path.
+    """
+    from fastapi.testclient import TestClient
+
+    from app.core.db import get_db
+    from app.main import app
+
+    def _override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = _override_get_db
+    with TestClient(app) as test_client:
+        register_response = test_client.post(
+            "/api/auth/register",
+            json={"email": TEST_USER_EMAIL, "password": TEST_USER_PASSWORD},
+        )
+        token = register_response.json()["access_token"]
+        test_client.headers.update({"Authorization": f"Bearer {token}"})
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def unauthenticated_client(db_session):
+    """Same app/DB wiring as `client`, but with no account registered and no
+    Authorization header -- for testing the register/login endpoints
+    themselves and the no-token/invalid-token 401 paths.
+    """
     from fastapi.testclient import TestClient
 
     from app.core.db import get_db

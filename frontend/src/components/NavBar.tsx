@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useCurrentUser, useLogout } from "../api/auth";
 import { NotificationBell } from "./NotificationBell";
 import styles from "./NavBar.module.css";
 
@@ -15,7 +16,15 @@ export function NavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
+  const currentUser = useCurrentUser();
+  const logout = useLogout();
   const navId = "primary-navigation";
+
+  function handleLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
 
   // Close the mobile menu on route change, Escape, or a click outside it -- same
   // interaction pattern as NotificationBell's panel.
@@ -75,6 +84,12 @@ export function NavBar() {
             {link.label}
           </NavLink>
         ))}
+        <div className={styles.accountRow}>
+          {currentUser.data && <span className={styles.accountEmail}>{currentUser.data.email}</span>}
+          <button type="button" className={styles.logoutButton} onClick={handleLogout}>
+            Log out
+          </button>
+        </div>
       </nav>
     </header>
   );

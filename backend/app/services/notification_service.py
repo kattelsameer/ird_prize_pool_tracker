@@ -26,7 +26,7 @@ def generate_match_and_claim_notifications(
     matches, skipping any event already notified (by dedup_key). Returns the
     number of genuinely new notifications created.
     """
-    settings = get_or_create_settings(db)
+    settings = get_or_create_settings(db, profile_id)
     created = 0
 
     for match in matches:
@@ -89,7 +89,7 @@ def generate_sync_data_notification(
 ) -> bool:
     """Only notify on a sync that actually added new government data
     (CLAUDE.md §33: 'Do not notify on routine syncs with no changes')."""
-    settings = get_or_create_settings(db)
+    settings = get_or_create_settings(db, profile_id)
     if not settings.notify_sync_updates or new_winner_count <= 0:
         return False
     dedup_key = f"NEW_SYNC_DATA:{sync_run_id}"
@@ -107,7 +107,7 @@ def generate_sync_recovered_notification(db: Session, profile_id: str, *, sync_r
     """Notify when a previously-failing sync has now succeeded, even if this
     particular run added no new winner records (CLAUDE.md §33: 'a previous
     failure was resolved' is one of the conditions that should notify)."""
-    settings = get_or_create_settings(db)
+    settings = get_or_create_settings(db, profile_id)
     if not settings.notify_sync_updates:
         return False
     dedup_key = f"SYNC_RECOVERED:{sync_run_id}"
@@ -122,7 +122,7 @@ def generate_sync_recovered_notification(db: Session, profile_id: str, *, sync_r
 
 
 def generate_sync_failed_notification(db: Session, profile_id: str, *, sync_run_id: str) -> bool:
-    settings = get_or_create_settings(db)
+    settings = get_or_create_settings(db, profile_id)
     if not settings.notify_sync_failures:
         return False
     dedup_key = f"SYNC_FAILED:{sync_run_id}"

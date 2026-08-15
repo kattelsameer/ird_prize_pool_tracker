@@ -222,3 +222,15 @@ export const fixtureSyncStatus: SyncStatus = {
 export function paginated<T>(items: T[], limit = 20, offset = 0): Paginated<T> {
   return { items, total: items.length, limit, offset };
 }
+
+export const fixtureUser = {
+  id: "user-1",
+  email: "test-user@example.com",
+  created_at: "2026-08-01T00:00:00+05:45",
+};
+
+export const fixtureAuthResponse = {
+  access_token: "fixture-token",
+  token_type: "bearer",
+  user: fixtureUser,
+};

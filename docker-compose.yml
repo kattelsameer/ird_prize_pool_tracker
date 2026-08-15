@@ -11,6 +11,9 @@ services:
       SCHEDULER_ENABLED: "true"
       SCHEDULER_TIMEZONE: Asia/Kathmandu
       LOG_LEVEL: INFO
+      # Insecure built-in default (app logs a startup warning if this is still in use) --
+      # set a real JWT_SECRET in your own .env before any shared/public deployment.
+      JWT_SECRET: "${JWT_SECRET:-insecure-dev-secret-change-me-before-any-real-deployment}"
     volumes:
       - backend_data:/data
     ports:

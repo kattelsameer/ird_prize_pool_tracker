@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
+    # Auth (JWT). The default secret is clearly marked insecure and is only
+    # here so the app runs out of the box for local/demo use without any
+    # config; app.main logs a loud warning at startup if it's still in use.
+    # Set a real random value via JWT_SECRET before any shared/public deployment.
+    jwt_secret: str = "insecure-dev-secret-change-me-before-any-real-deployment"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
