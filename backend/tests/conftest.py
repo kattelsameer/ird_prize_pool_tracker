@@ -36,6 +36,7 @@ def _configure_test_environment(tmp_path_factory):
 def db_session():
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
 
     # IMPORTANT: import app.models (not just app.core.db) before create_all.
     # Base.metadata only knows about tables whose model classes have actually
@@ -47,7 +48,16 @@ def db_session():
     from app.core.db import Base
     import app.models  # noqa: F401
 
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    # StaticPool is required (not just check_same_thread=False): FastAPI's
+    # TestClient runs sync dependencies in a worker thread, and SQLite's
+    # default pool for ":memory:" hands each thread its own separate
+    # (empty) in-memory database. StaticPool forces every connection to
+    # share the single connection that create_all ran against.
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
     testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
     session = testing_session_local()

@@ -35,3 +35,15 @@ DUPLICATE_COUPON_PAYLOAD = {
     "fiscal_year": "2083-84",
     "network": "Khalti",
 }
+
+# Used by test_creating_a_coupon_that_matches_an_existing_winner_notifies_immediately:
+# a PrizePoolWinner seeded directly (simulating a sync that already ran) before the
+# matching coupon is created through the API, to prove the "newly eligible coupon"
+# notification (CLAUDE.md §33) fires on coupon creation, not only at sync time.
+EXISTING_WINNER_DRAW_ID = "existing-draw-for-notify-test"
+EXISTING_WINNER_COUPON_CODE = "999888777666"
+MATCHING_COUPON_PAYLOAD = {
+    "coupon_code": "999 888 777 666",
+    "transaction_date": "2026-07-20",
+    "fiscal_year": "2083-84",
+}
