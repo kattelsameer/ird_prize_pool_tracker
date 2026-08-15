@@ -174,14 +174,15 @@ export async function installMockApi(page: Page) {
     await route.fulfill({ json: networks[index] });
   });
 
-  let syncTriggered = false;
   await page.route("**/api/sync/status", async (route) => {
-    await route.fulfill({ json: syncTriggered ? fixtureSyncStatus : fixtureSyncStatus });
+    await route.fulfill({ json: fixtureSyncStatus });
   });
   await page.route("**/api/sync", async (route) => {
     if (route.request().method() === "POST") {
-      syncTriggered = true;
-      await route.fulfill({ json: fixtureSyncStatus });
+      // Mirrors app/schemas/sync.py's SyncTriggerResponse -- distinct from
+      // SyncStatus (GET /api/sync/status). The real backend runs the sync in
+      // a background thread; this fixture treats it as already complete.
+      await route.fulfill({ json: { accepted: true, message: "Synchronization started." } });
       return;
     }
     await route.continue();

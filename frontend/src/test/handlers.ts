@@ -27,6 +27,7 @@ let profile = {
   updated_at: "2026-08-01T00:00:00+05:45",
 };
 let accountDeleted = false;
+let syncRunning = false;
 
 type RegisteredUser = { email: string; password: string; user: User };
 let registeredUsers: RegisteredUser[] = [
@@ -46,6 +47,7 @@ export function resetMockData() {
     updated_at: "2026-08-01T00:00:00+05:45",
   };
   accountDeleted = false;
+  syncRunning = false;
   registeredUsers = [{ email: fixtureUser.email, password: TEST_USER_PASSWORD, user: fixtureUser }];
   issuedTokens = { "fixture-token": fixtureUser };
 }
@@ -171,8 +173,14 @@ export const handlers = [
     return HttpResponse.json(networks[index]);
   }),
 
-  http.get(`${BASE}/api/sync/status`, () => HttpResponse.json(fixtureSyncStatus)),
-  http.post(`${BASE}/api/sync`, () => HttpResponse.json(fixtureSyncStatus)),
+  http.get(`${BASE}/api/sync/status`, () => HttpResponse.json({ ...fixtureSyncStatus, is_running: syncRunning })),
+  http.post(`${BASE}/api/sync`, () => {
+    if (syncRunning) {
+      return HttpResponse.json({ accepted: false, message: "A synchronization is already in progress." });
+    }
+    syncRunning = true;
+    return HttpResponse.json({ accepted: true, message: "Synchronization started." });
+  }),
 
   http.post(`${BASE}/api/auth/register`, async ({ request }) => {
     const body = (await request.json()) as { email: string; password: string };
