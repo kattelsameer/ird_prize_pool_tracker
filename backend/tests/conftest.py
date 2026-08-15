@@ -84,7 +84,15 @@ def client(db_session):
     from fastapi.testclient import TestClient
 
     from app.core.db import get_db
+    from app.core.rate_limit import reset_rate_limits
     from app.main import app
+
+    # The rate limiter's in-memory storage is process-wide (module-level
+    # singleton), not per-TestClient -- without a reset here, ~90 tests each
+    # registering/logging in would blow through the 10/minute auth limit well
+    # before the suite finishes, failing unrelated tests for reasons that have
+    # nothing to do with what they're testing.
+    reset_rate_limits()
 
     def _override_get_db():
         yield db_session
@@ -110,7 +118,10 @@ def unauthenticated_client(db_session):
     from fastapi.testclient import TestClient
 
     from app.core.db import get_db
+    from app.core.rate_limit import reset_rate_limits
     from app.main import app
+
+    reset_rate_limits()  # see the matching comment in the `client` fixture above
 
     def _override_get_db():
         yield db_session

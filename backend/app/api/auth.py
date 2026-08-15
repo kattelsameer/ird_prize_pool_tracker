@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.core.rate_limit import enforce_auth_rate_limit
 from app.core.security import create_access_token, verify_password
 from app.models.user import User
 from app.repositories.user_repo import create_user, get_user_by_email
@@ -12,7 +13,12 @@ from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserR
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(enforce_auth_rate_limit)],
+)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     if get_user_by_email(db, payload.email) is not None:
         # Deliberately vague (CLAUDE.md §43): confirms the email is taken, which
@@ -24,7 +30,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     return TokenResponse(access_token=token, user=UserRead.model_validate(user))
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=[Depends(enforce_auth_rate_limit)])
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = get_user_by_email(db, payload.email)
     # Constant-shape failure regardless of *which* check failed (no such email

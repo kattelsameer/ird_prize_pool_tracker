@@ -10,6 +10,7 @@ email-validator==2.2.0  # Pydantic EmailStr backend, used by auth schemas
 # Auth: password hashing + JWT
 bcrypt==4.2.1
 pyjwt==2.13.0
+limits==5.8.0  # per-IP rate limiting on /api/auth/login and /api/auth/register (app/core/rate_limit.py)
 
 # ORM / migrations
 sqlalchemy==2.0.36
