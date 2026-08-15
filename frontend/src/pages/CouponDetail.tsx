@@ -47,7 +47,7 @@ export function CouponDetail() {
       {isEditing ? (
         <CouponForm
           initialValue={coupon.data}
-          networks={settings.data?.networks}
+          networks={settings.data?.networks.filter((n) => n.active).map((n) => n.name)}
           submitLabel="Save changes"
           onSubmit={handleUpdate}
           onCancel={() => setIsEditing(false)}

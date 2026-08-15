@@ -2,22 +2,27 @@ import { http, HttpResponse } from "msw";
 import {
   fixtureCoupons,
   fixtureMatches,
+  fixtureNetworks,
   fixtureNotifications,
   fixturePrizePools,
   fixtureSettings,
   fixtureSyncStatus,
 } from "./fixtures";
-import type { Coupon, CouponInput } from "../api/types";
+import type { Coupon, CouponInput, Network } from "../api/types";
 
 const BASE = "http://localhost:8000";
 
 // Mutable in-memory copies so create/update/delete tests can observe changes within a test file.
 let coupons: Coupon[] = [...fixtureCoupons];
 let notifications = [...fixtureNotifications];
+let networks: Network[] = [...fixtureNetworks];
+let settings = { ...fixtureSettings };
 
 export function resetMockData() {
   coupons = [...fixtureCoupons];
   notifications = [...fixtureNotifications];
+  networks = [...fixtureNetworks];
+  settings = { ...fixtureSettings };
 }
 
 export const handlers = [
@@ -121,10 +126,24 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.get(`${BASE}/api/settings`, () => HttpResponse.json(fixtureSettings)),
+  http.get(`${BASE}/api/settings`, () => HttpResponse.json({ ...settings, networks })),
   http.put(`${BASE}/api/settings`, async ({ request }) => {
-    const body = await request.json();
-    return HttpResponse.json(body);
+    const body = (await request.json()) as Partial<typeof settings>;
+    settings = { ...settings, ...body };
+    return HttpResponse.json({ ...settings, networks });
+  }),
+  http.post(`${BASE}/api/settings/networks`, async ({ request }) => {
+    const body = (await request.json()) as { name: string };
+    const created: Network = { id: `network-${networks.length + 1}`, name: body.name, active: true };
+    networks = [...networks, created];
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.patch(`${BASE}/api/settings/networks/:id`, async ({ params, request }) => {
+    const body = (await request.json()) as Partial<Pick<Network, "name" | "active">>;
+    const index = networks.findIndex((n) => n.id === params.id);
+    if (index === -1) return new HttpResponse(null, { status: 404 });
+    networks[index] = { ...networks[index], ...body };
+    return HttpResponse.json(networks[index]);
   }),
 
   http.get(`${BASE}/api/sync/status`, () => HttpResponse.json(fixtureSyncStatus)),

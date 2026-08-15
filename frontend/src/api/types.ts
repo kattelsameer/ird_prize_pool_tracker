@@ -86,15 +86,22 @@ export type NotificationType =
 export interface AppNotification {
   id: string;
   type: NotificationType;
+  coupon_id: string | null;
+  draw_id: string | null;
   message: string;
   created_at: string;
   read_at: string | null;
 }
 
+// Mirrors app/schemas/sync.py exactly -- status is lowercase (set verbatim by
+// app/services/sync_service.py: "running" | "success" | "partial" | "failed").
+export type SyncRunStatus = "running" | "success" | "partial" | "failed";
+
 export interface SyncRun {
-  sync_started_at: string;
-  sync_finished_at: string | null;
-  status: "SUCCESS" | "FAILED" | "RUNNING";
+  id: string;
+  started_at: string;
+  finished_at: string | null;
+  status: SyncRunStatus;
   records_received: number;
   records_inserted: number;
   records_updated: number;
@@ -103,18 +110,30 @@ export interface SyncRun {
 }
 
 export interface SyncStatus {
-  last_sync: SyncRun | null;
   is_running: boolean;
+  latest_run: SyncRun | null;
 }
 
-export interface Settings {
-  networks: string[];
-  notification_prefs: {
-    new_match: boolean;
-    claim_expiring: boolean;
-    claim_expired: boolean;
-    new_sync_data: boolean;
-    sync_failed: boolean;
-  };
+export interface Network {
+  id: string;
+  name: string;
+  active: boolean;
 }
+
+// Mirrors app/schemas/settings.py's SettingsRead exactly -- notification prefs are flat
+// top-level fields (not a nested `notification_prefs` object), and `networks` is not
+// editable through PUT /api/settings; add/rename/deactivate go through their own
+// /api/settings/networks endpoints (see api/settings.ts).
+export interface Settings {
+  notify_new_match: boolean;
+  notify_claim_expiring: boolean;
+  notify_claim_expired: boolean;
+  notify_sync_updates: boolean;
+  notify_sync_failures: boolean;
+  networks: Network[];
+}
+
+export type SettingsUpdate = Partial<
+  Omit<Settings, "networks">
+>;
 

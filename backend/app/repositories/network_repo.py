@@ -42,3 +42,25 @@ def add_network(db: Session, name: str) -> Network:
     db.commit()
     db.refresh(network)
     return network
+
+
+def get_network(db: Session, network_id: str) -> Network | None:
+    return db.execute(select(Network).where(Network.id == network_id)).scalar_one_or_none()
+
+
+def update_network(
+    db: Session, network: Network, *, name: str | None = None, active: bool | None = None
+) -> Network:
+    """Rename and/or activate/deactivate a network (CLAUDE.md §36 "Add/edit/
+    deactivate network options"). Deactivating rather than deleting keeps
+    existing coupons' `network` values meaningful for display even after a
+    network is retired from the add/edit dropdown.
+    """
+    if name is not None:
+        network.name = normalize_network_name(name) or name
+    if active is not None:
+        network.active = active
+    db.add(network)
+    db.commit()
+    db.refresh(network)
+    return network
