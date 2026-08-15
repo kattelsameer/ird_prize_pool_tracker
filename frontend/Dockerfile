@@ -2,12 +2,8 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-# Uses `npm install` rather than `npm ci` because this repo does not yet have a committed
-# package-lock.json (it could not be generated in the environment this project was authored
-# in — see README/limitations). Once a lockfile is committed, switch this back to `npm ci`
-# for fully reproducible builds.
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY . .
 
