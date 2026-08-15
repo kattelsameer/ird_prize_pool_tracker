@@ -37,7 +37,15 @@ def db_session():
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
+    # IMPORTANT: import app.models (not just app.core.db) before create_all.
+    # Base.metadata only knows about tables whose model classes have actually
+    # been imported/executed at least once; app.core.db.Base itself carries
+    # no table definitions on its own. If this fixture is the first thing in
+    # the test session to touch the DB, create_all would otherwise run
+    # against an empty metadata (creating zero tables), and every query in
+    # this test would fail with "no such table: ...".
     from app.core.db import Base
+    import app.models  # noqa: F401
 
     engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
     Base.metadata.create_all(bind=engine)

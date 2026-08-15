@@ -4,7 +4,9 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, String
+from sqlalchemy import Date, ForeignKey, String
+
+from app.models.types import TZDateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.timeutil import now_kathmandu
@@ -33,7 +35,7 @@ class Coupon(Base):
     fiscal_year: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
     network: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_kathmandu)
+    created_at: Mapped[datetime] = mapped_column(TZDateTime(), default=now_kathmandu)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=now_kathmandu, onupdate=now_kathmandu
+        TZDateTime(), default=now_kathmandu, onupdate=now_kathmandu
     )
