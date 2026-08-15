@@ -45,8 +45,11 @@ app.add_middleware(
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     # Pydantic validation errors are safe to return as-is (no internals leaked)
-    # and are already user-actionable (CLAUDE.md §42).
-    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+    # and are already user-actionable (CLAUDE.md §42). `ctx` is dropped because
+    # Pydantic v2 puts the raw exception instance there for validators that
+    # raise ValueError (e.g. "must not be blank"), which isn't JSON serializable.
+    errors = [{k: v for k, v in err.items() if k != "ctx"} for err in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 
 @app.exception_handler(HTTPException)
