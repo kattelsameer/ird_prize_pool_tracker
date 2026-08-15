@@ -60,9 +60,9 @@ docker compose up --build
 
 - Frontend: http://localhost:8080
 - Backend API + docs: http://localhost:8000/docs
-- The backend runs `alembic upgrade head` is **not** auto-invoked by the container today —
-  run it once against the mounted volume (see Migrations below) or rely on the
-  `Base.metadata.create_all` startup safety-net (`app/main.py`) for a fresh SQLite file.
+- The backend container runs `alembic upgrade head` automatically on every start
+  (`backend/Dockerfile`'s `CMD`), before starting uvicorn; `Base.metadata.create_all`
+  (`app/main.py`) is a secondary safety net for a completely fresh SQLite file.
 
 ## Local development (without Docker)
 
@@ -135,46 +135,55 @@ Backend tests follow a strict `test_x.py` + `data_x.py` pairing (scenario tables
 ## Git workflow
 
 `master` (stable) ← `develop` (integration) ← `feature/*` / `bugfix/*`, per CLAUDE.md §11-18.
-Run `git log --oneline --all --decorate --graph` to see the branch/merge history for this
-build. Feature branches used for this initial build: `feature/project-scaffold`,
-`feature/backend-foundation`, `feature/matching-engine`, `feature/frontend-app`,
-`feature/docker-and-release`.
+Run `git log --oneline --all --decorate --graph` to see the full branch/merge history —
+initial feature build-out (`feature/project-scaffold`, `feature/backend-foundation`,
+`feature/matching-engine`, `feature/frontend-app`, `feature/docker-and-release`), plus
+several rounds of bugfix branches found by actually running the Dockerized app (timezone/test
+fixtures, a SQLite/TestClient connection-pool isolation bug, a validation-error serialization
+crash, a missing "newly eligible coupon" notification, and a systemic frontend/backend API
+contract drift across pagination, notifications, matches, and settings — each merged through
+`develop` before reaching `master`).
 
 ## Known limitations / assumptions
 
-1. **This cloud build environment could not reach PyPI or the npm registry** (org network
-   allowlist blocks package-registry egress from this sandbox; confirmed directly with
-   `pip install fastapi` → "No matching distribution found," and equivalently for npm). It
-   also has no running Docker daemon. **Practically: `pip install -r requirements.txt`,
-   `npm install`, `pytest`/`npm test`/`playwright test`, and `docker compose up --build` must
-   all be run in an environment with normal internet access** (your own machine, CI, etc.) —
-   they were not fabricated as "passing" here. What *was* actually executed in this sandbox,
-   using only already-preinstalled tooling (to avoid claiming untested code works):
-   - Backend: 27 dependency-free unit tests (`python -m unittest`) covering matching rules,
-     claim-status boundaries, the Nepal fiscal-year boundary, normalization, and the IRD
-     client's retry/backoff/pagination logic against a mocked transport — all passing. Every
-     `.py` file passes `py_compile`. The SQLAlchemy/FastAPI layer (models, API routes,
-     sync service) is fully written and unit-tested in `backend/tests/`, but those specific
-     tests need `pip install` to actually execute — do that before merging to `master` in a
-     real CI run.
-   - Frontend: `tsc --noEmit` against the real source with stub type declarations (clean);
-     the pure business-logic modules (claim countdown math, coupon normalization) executed
-     directly via `tsx` with 18/18 hand-written assertions passing. Vitest/RTL component
-     tests and the Playwright E2E spec are fully written but need `npm install` to run.
-2. **`nepali_datetime` (the BS↔AD conversion package named in the original plan) could not be
-   verified installable here.** `backend/app/domain/nepali_calendar.py` tries importing it
-   first and falls back to a small anchor-table implementation documented in that file,
-   sufficient because IRD publishes `prize_fiscal_year_code` directly (the BS conversion is
-   only used for advisory display/eligible-period checks, never for the matching decision
-   itself). Verify/replace with the real package once you have registry access.
-2. **Single implicit consumer profile, no authentication** — appropriate for local/personal
-   use per CLAUDE.md §23; see `SECURITY.md` before any shared/public deployment.
-3. **IRD site body content could not be scraped** (client-rendered SPA, no server HTML) — the
-   live API was fetched directly instead and is the authoritative source used throughout;
-   see `RESEARCH.md` for exactly what was confirmed live vs. sourced from the spec.
-4. Only two live draws / 16 winner records existed at research time — some structural
-   assumptions (e.g., no `network` field, `draw_type` always `"GENERAL"`) rest on a small
-   sample; the adapter layer isolates this risk if the API's shape evolves.
+This project was originally built in a sandbox with no package-registry or Docker access, so
+an earlier revision of this section described what *couldn't* be verified there. It has since
+been fully built, tested, and Dockerized end-to-end in a real environment — the numbers below
+are actual, current results, not estimates:
+
+- **Backend**: 55 pytest tests pass (`cd backend && pytest`), covering models, repositories,
+  every API route (including live-verified sort/filter/pagination on `/api/prize-pools` and
+  add/rename/deactivate on `/api/settings/networks`), matching rules, claim-status boundaries,
+  the Nepal fiscal-year boundary, normalization, sync idempotency/failure-handling, and the
+  IRD client's retry/backoff/pagination logic against a mocked transport.
+- **Frontend**: 43 Vitest/RTL tests pass (`cd frontend && npm test`), `tsc --noEmit` is clean,
+  the production build (`npm run build`) succeeds, and the Playwright E2E spec
+  (`npm run e2e`) passes the full consumer journey against a deterministic mock backend.
+- **Docker**: `docker compose up --build` builds and starts both containers; both pass their
+  health checks; a real sync against the live `prize.ird.gov.np` API, coupon CRUD, matching,
+  notifications, claim countdowns, and settings/network management were all manually verified
+  against the running containers in a browser, including that data (coupons, synced winners)
+  survives a container restart.
+- **`nepali_datetime` (BS↔AD conversion)** is installed and active — confirmed via a direct
+  check that `app/domain/nepali_calendar.py` takes the real-library path (not its anchor-table
+  fallback) and that it agrees with CLAUDE.md's own worked example (July 16/17, 2026 falling
+  on either side of the FY2082-83/2083-84 boundary). The fallback table remains in place for
+  any environment where the package genuinely isn't installed; nothing in the matching engine
+  depends on it being exact either way, since IRD publishes `prize_fiscal_year_code` directly.
+- **Single implicit consumer profile, no authentication** — appropriate for local/personal
+  use per CLAUDE.md §23; see `SECURITY.md` before any shared/public deployment.
+- **IRD site body content could not be scraped** (client-rendered SPA, no server HTML) — the
+  live API was fetched directly instead and is the authoritative source used throughout;
+  see `RESEARCH.md` for exactly what was confirmed live vs. sourced from the spec.
+- At the time of this build, live sync returned 1 draw period / 16 winner records (15 daily +
+  1 bumper) — some structural assumptions (e.g., no `network` field, `draw_type` always
+  `"GENERAL"`) rest on a small sample; the adapter layer (`app/schemas/prize_pool.py`'s
+  `PrizePoolWinnerRead.from_model`) isolates this risk if the API's shape evolves.
+- **Dependency security**: two dependency advisories (a FastAPI/Starlette CVE set, and a
+  react-router open-redirect CVE) are fixed only in major-version upgrades and are deferred
+  as prioritized follow-up work rather than fixed blind under time pressure — see
+  `SECURITY.md` for the full reachability analysis (neither is actually exploitable in this
+  app's current code) and exact upgrade path.
 
 ## Project layout
 
