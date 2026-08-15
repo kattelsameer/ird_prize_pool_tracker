@@ -1,0 +1,46 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    image: sajha-coupon-tracker-backend:local
+    environment:
+      DATABASE_URL: sqlite:////data/app.db
+      CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+      DEMO_MODE: "${DEMO_MODE:-false}"
+      IRD_API_BASE_URL: https://prize.ird.gov.np/api/v1/public
+      SCHEDULER_ENABLED: "true"
+      SCHEDULER_TIMEZONE: Asia/Kathmandu
+      LOG_LEVEL: INFO
+    volumes:
+      - backend_data:/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    image: sajha-coupon-tracker-frontend:local
+    environment:
+      VITE_API_BASE_URL: /api
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:80/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  backend_data:
