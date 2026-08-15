@@ -35,7 +35,8 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:80/healthz"]
+      # 127.0.0.1, not localhost: see frontend/Dockerfile's HEALTHCHECK comment.
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:80/healthz"]
       interval: 15s
       timeout: 5s
       retries: 10
