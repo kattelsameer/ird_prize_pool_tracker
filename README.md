@@ -97,14 +97,20 @@ See `backend/.env.example` and `frontend/.env.example` for the full list. Key on
 
 Real accounts: `POST /api/auth/register` (email + password, min 8 characters) and
 `POST /api/auth/login` both return a JWT the frontend stores in `localStorage` and sends as
-`Authorization: Bearer <token>` on every request (`src/api/client.ts`). Each account gets its
-own private `ConsumerProfile` — coupons, notifications, and settings are all scoped to it and
-never visible to another account. `GET /api/prize-pools` (published government data) is the
-one deliberate exception and stays public/unauthenticated.
+`Authorization: Bearer <token>` on every request (`src/api/client.ts`). Both endpoints share a
+per-IP rate limit (10 requests/minute — `app/core/rate_limit.py`) to slow down credential
+stuffing. Each account gets its own private `ConsumerProfile` — coupons, notifications, and
+settings are all scoped to it and never visible to another account. `GET /api/prize-pools`
+(published government data) is the one deliberate exception and stays public/unauthenticated.
 
 In `DEMO_MODE=true`, a seeded demo account is created automatically — check the backend
 container logs for `Demo mode: seeded deterministic demo fixtures. Log in with <email> / <password>`
 (credentials aren't hardcoded here so they don't drift from `scripts/seed_demo.py`).
+
+**Your data** (Settings → Account): view/edit your display name, download a JSON export of
+everything you've entered (`GET /api/profile/export`), or permanently delete your account and
+everything tied to it (`DELETE /api/profile`) — satisfies CLAUDE.md §10d's view/export/delete
+requirement.
 
 ## Migrations
 
@@ -122,6 +128,9 @@ cd backend && pip install -r requirements.txt && pytest
 
 # Frontend unit/component tests
 cd frontend && npm install && npm test
+
+# Frontend lint + typecheck (required before any merge, CLAUDE.md §16/§18)
+cd frontend && npm run lint && npm run typecheck
 
 # Frontend E2E (Playwright, against a mocked backend fixture — never live IRD)
 cd frontend && npx playwright install --with-deps && npm run e2e
@@ -144,7 +153,9 @@ Backend tests follow a strict `test_x.py` + `data_x.py` pairing (scenario tables
   own deadline.
 - A failed sync never deletes or overwrites existing data; it's recorded in `SyncRun` and
   surfaced in the UI ("Government data could not be updated. Existing data is still
-  available.").
+  available."). A failure also schedules a background retry at 1 hour, then 4 hours, then
+  24 hours (CLAUDE.md §10e) — not immediately, and never faster than that backoff — canceled
+  automatically as soon as a sync succeeds again.
 
 ## Git workflow
 
@@ -165,17 +176,19 @@ an earlier revision of this section described what *couldn't* be verified there.
 been fully built, tested, and Dockerized end-to-end in a real environment — the numbers below
 are actual, current results, not estimates:
 
-- **Backend**: 76 pytest tests pass (`cd backend && pytest`), covering models, repositories,
+- **Backend**: 92 pytest tests pass (`cd backend && pytest`), covering models, repositories,
   every API route (including live-verified sort/filter/pagination on `/api/prize-pools`,
-  add/rename/deactivate on `/api/settings/networks`, and register/login/me/per-account data
-  isolation on `/api/auth/*`), matching rules, claim-status boundaries, the Nepal fiscal-year
-  boundary, normalization, password hashing/JWT roundtrip and expiry, sync idempotency/
-  failure-handling, and the IRD client's retry/backoff/pagination logic against a mocked
-  transport.
-- **Frontend**: 53 Vitest/RTL tests pass (`cd frontend && npm test`), `tsc --noEmit` is clean,
-  the production build (`npm run build`) succeeds, and both Playwright E2E specs
-  (`npm run e2e`) pass — the full consumer journey, and register/logout/login — against a
-  deterministic mock backend.
+  add/rename/deactivate on `/api/settings/networks`, register/login/me/per-account data
+  isolation and per-IP rate limiting on `/api/auth/*`, and personal-data export/deletion on
+  `/api/profile`), matching rules, claim-status boundaries, the Nepal fiscal-year boundary,
+  normalization, password hashing/JWT roundtrip and expiry, sync idempotency/failure-handling
+  and the 1h/4h/24h retry-backoff scheduling, and the IRD client's retry/backoff/pagination
+  logic against a mocked transport.
+- **Frontend**: 57 Vitest/RTL tests pass (`cd frontend && npm test`), `tsc --noEmit` is clean,
+  `npm run lint` (ESLint, flat config) passes with 0 errors, the production build
+  (`npm run build`) succeeds, and both Playwright E2E specs (`npm run e2e`) pass — the full
+  consumer journey, and register/logout/login — against a deterministic mock backend.
+- **Dependencies**: `pip-audit`/`npm audit` both report **0 known vulnerabilities**.
 - **Docker**: `docker compose up --build` builds and starts both containers; both pass their
   health checks; a real sync against the live `prize.ird.gov.np` API, coupon CRUD, matching,
   notifications, claim countdowns, and settings/network management were all manually verified
