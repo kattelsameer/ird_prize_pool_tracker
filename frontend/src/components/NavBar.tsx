@@ -21,16 +21,20 @@ export function NavBar() {
   const logout = useLogout();
   const navId = "primary-navigation";
 
+  // Close the mobile menu on route change -- an in-render state adjustment
+  // (React's recommended alternative to a `useEffect` keyed on a changing
+  // prop/value: https://react.dev/learn/you-might-not-need-an-effect),
+  // not an effect, so it can never cause an extra cascading render commit.
+  const [lastPathname, setLastPathname] = useState(location.pathname);
+  if (location.pathname !== lastPathname) {
+    setLastPathname(location.pathname);
+    setMenuOpen(false);
+  }
+
   function handleLogout() {
     logout();
     navigate("/login", { replace: true });
   }
-
-  // Close the mobile menu on route change, Escape, or a click outside it -- same
-  // interaction pattern as NotificationBell's panel.
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [location.pathname]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

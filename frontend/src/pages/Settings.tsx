@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAddNetwork, useSettings, useUpdateNetwork, useUpdateSettings } from "../api/settings";
 import { useSyncStatus, useTriggerSync } from "../api/sync";
@@ -32,9 +32,14 @@ function AccountSection() {
   const [displayName, setDisplayName] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  useEffect(() => {
-    if (profile.data) setDisplayName(profile.data.display_name ?? "");
-  }, [profile.data]);
+  // Seed the editable field from the server value once it arrives -- an
+  // in-render adjustment (not an effect) so a later refetch never clobbers
+  // an in-progress edit once the initial sync has happened.
+  const [syncedDisplayName, setSyncedDisplayName] = useState<string | null>(null);
+  if (profile.data && profile.data.display_name !== syncedDisplayName) {
+    setSyncedDisplayName(profile.data.display_name);
+    setDisplayName(profile.data.display_name ?? "");
+  }
 
   function handleSaveDisplayName(event: FormEvent) {
     event.preventDefault();
@@ -135,17 +140,17 @@ export function Settings() {
   const [notifyDraft, setNotifyDraft] = useState<SettingsUpdate | null>(null);
   const [newNetwork, setNewNetwork] = useState("");
 
-  useEffect(() => {
-    if (settings.data && !notifyDraft) {
-      setNotifyDraft({
-        notify_new_match: settings.data.notify_new_match,
-        notify_claim_expiring: settings.data.notify_claim_expiring,
-        notify_claim_expired: settings.data.notify_claim_expired,
-        notify_sync_updates: settings.data.notify_sync_updates,
-        notify_sync_failures: settings.data.notify_sync_failures,
-      });
-    }
-  }, [settings.data, notifyDraft]);
+  // In-render initialization (not an effect): seeds the draft once from the
+  // first successful fetch, guarded so it never overwrites in-progress edits.
+  if (settings.data && !notifyDraft) {
+    setNotifyDraft({
+      notify_new_match: settings.data.notify_new_match,
+      notify_claim_expiring: settings.data.notify_claim_expiring,
+      notify_claim_expired: settings.data.notify_claim_expired,
+      notify_sync_updates: settings.data.notify_sync_updates,
+      notify_sync_failures: settings.data.notify_sync_failures,
+    });
+  }
 
   if (settings.isLoading) return <LoadingState label="Loading settings…" />;
   if (settings.isError) return <ErrorState error={settings.error} onRetry={() => settings.refetch()} />;
