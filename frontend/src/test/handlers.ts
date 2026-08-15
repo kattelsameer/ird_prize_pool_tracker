@@ -20,6 +20,13 @@ let coupons: Coupon[] = [...fixtureCoupons];
 let notifications = [...fixtureNotifications];
 let networks: Network[] = [...fixtureNetworks];
 let settings = { ...fixtureSettings };
+let profile = {
+  id: "profile-1",
+  display_name: null as string | null,
+  created_at: "2026-08-01T00:00:00+05:45",
+  updated_at: "2026-08-01T00:00:00+05:45",
+};
+let accountDeleted = false;
 
 type RegisteredUser = { email: string; password: string; user: User };
 let registeredUsers: RegisteredUser[] = [
@@ -32,6 +39,13 @@ export function resetMockData() {
   notifications = [...fixtureNotifications];
   networks = [...fixtureNetworks];
   settings = { ...fixtureSettings };
+  profile = {
+    id: "profile-1",
+    display_name: null,
+    created_at: "2026-08-01T00:00:00+05:45",
+    updated_at: "2026-08-01T00:00:00+05:45",
+  };
+  accountDeleted = false;
   registeredUsers = [{ email: fixtureUser.email, password: TEST_USER_PASSWORD, user: fixtureUser }];
   issuedTokens = { "fixture-token": fixtureUser };
 }
@@ -202,12 +216,25 @@ export const handlers = [
     return HttpResponse.json(user);
   }),
 
-  http.get(`${BASE}/api/profile`, () =>
+  http.get(`${BASE}/api/profile`, () => {
+    if (accountDeleted) return HttpResponse.json({ detail: "Not authenticated" }, { status: 401 });
+    return HttpResponse.json(profile);
+  }),
+  http.put(`${BASE}/api/profile`, async ({ request }) => {
+    const body = (await request.json()) as { display_name: string | null };
+    profile = { ...profile, display_name: body.display_name, updated_at: new Date().toISOString() };
+    return HttpResponse.json(profile);
+  }),
+  http.get(`${BASE}/api/profile/export`, () =>
     HttpResponse.json({
-      id: "profile-1",
-      display_name: "Nepal Consumer",
-      created_at: "2026-08-01T00:00:00+05:45",
-      updated_at: "2026-08-01T00:00:00+05:45",
+      exported_at: new Date().toISOString(),
+      account_email: fixtureUser.email,
+      profile,
+      coupons,
     })
   ),
+  http.delete(`${BASE}/api/profile`, () => {
+    accountDeleted = true;
+    return new HttpResponse(null, { status: 204 });
+  }),
 ];
