@@ -135,6 +135,15 @@ export interface SyncStatus {
   latest_run: SyncRun | null;
 }
 
+// Mirrors app/schemas/sync.py's SyncTriggerResponse -- the immediate response to
+// POST /api/sync, distinct from SyncStatus. The actual sync runs in a background
+// thread, so `accepted` only says whether this call started (or found) a run --
+// it says nothing about whether that run has finished yet.
+export interface SyncTriggerResponse {
+  accepted: boolean;
+  message: string;
+}
+
 export interface Network {
   id: string;
   name: string;
