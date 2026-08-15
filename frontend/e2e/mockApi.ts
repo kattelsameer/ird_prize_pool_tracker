@@ -118,12 +118,35 @@ export async function installMockApi(page: Page) {
     await route.fulfill({ status: 204 });
   });
 
+  let settings = { ...fixtureSettings };
+  let networks = [...fixtureSettings.networks];
+
   await page.route("**/api/settings", async (route) => {
     if (route.request().method() === "GET") {
-      await route.fulfill({ json: fixtureSettings });
+      await route.fulfill({ json: { ...settings, networks } });
       return;
     }
-    await route.fulfill({ json: route.request().postDataJSON() });
+    settings = { ...settings, ...route.request().postDataJSON() };
+    await route.fulfill({ json: { ...settings, networks } });
+  });
+
+  await page.route("**/api/settings/networks", async (route) => {
+    const body = route.request().postDataJSON() as { name: string };
+    const created = { id: `network-e2e-${networks.length + 1}`, name: body.name, active: true };
+    networks = [...networks, created];
+    await route.fulfill({ status: 201, json: created });
+  });
+
+  await page.route("**/api/settings/networks/*", async (route) => {
+    const id = new URL(route.request().url()).pathname.split("/").pop();
+    const body = route.request().postDataJSON() as { name?: string; active?: boolean };
+    const index = networks.findIndex((n) => n.id === id);
+    if (index === -1) {
+      await route.fulfill({ status: 404 });
+      return;
+    }
+    networks[index] = { ...networks[index], ...body };
+    await route.fulfill({ json: networks[index] });
   });
 
   let syncTriggered = false;

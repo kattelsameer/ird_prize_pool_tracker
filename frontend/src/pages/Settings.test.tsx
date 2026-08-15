@@ -14,7 +14,7 @@ describe("Settings page", () => {
     expect(screen.getByLabelText(/notify me when new government data is available/i)).not.toBeChecked();
   });
 
-  it("adds a new network and saves settings", async () => {
+  it("adds a new network", async () => {
     const user = userEvent.setup();
     renderWithProviders(<Settings />);
 
@@ -24,7 +24,14 @@ describe("Settings page", () => {
     await user.click(screen.getByRole("button", { name: /^add$/i }));
 
     expect(await screen.findByDisplayValue("ConnectIPS")).toBeInTheDocument();
+  });
 
+  it("saves notification preference changes", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />);
+
+    await screen.findByDisplayValue("eSewa");
+    await user.click(screen.getByLabelText(/notify me when new government data is available/i));
     await user.click(screen.getByRole("button", { name: /save settings/i }));
 
     await waitFor(() => {
@@ -32,13 +39,18 @@ describe("Settings page", () => {
     });
   });
 
-  it("removes a network", async () => {
+  it("deactivates a network rather than deleting it", async () => {
     const user = userEvent.setup();
     renderWithProviders(<Settings />);
 
     await screen.findByDisplayValue("eSewa");
-    await user.click(screen.getByRole("button", { name: /remove esewa/i }));
+    await user.click(screen.getByRole("button", { name: /deactivate esewa/i }));
 
-    expect(screen.queryByDisplayValue("eSewa")).not.toBeInTheDocument();
+    // Deactivating keeps the row (network history/coupons may still reference it) but
+    // disables editing and flips the action to "Reactivate".
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /reactivate esewa/i })).toBeInTheDocument();
+    });
+    expect(screen.getByDisplayValue("eSewa")).toBeDisabled();
   });
 });

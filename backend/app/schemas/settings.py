@@ -13,6 +13,11 @@ class NetworkCreate(BaseModel):
     name: str
 
 
+class NetworkUpdate(BaseModel):
+    name: str | None = None
+    active: bool | None = None
+
+
 class SettingsRead(BaseModel):
     notify_new_match: bool
     notify_claim_expiring: bool

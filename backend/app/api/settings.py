@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.repositories.network_repo import add_network, list_networks
+from app.repositories.network_repo import (
+    add_network,
+    ensure_default_networks,
+    get_network,
+    list_networks,
+    update_network,
+)
 from app.repositories.settings_repo import get_or_create_settings, update_settings
-from app.schemas.settings import NetworkCreate, NetworkRead, SettingsRead, SettingsUpdate
+from app.schemas.settings import NetworkCreate, NetworkRead, NetworkUpdate, SettingsRead, SettingsUpdate
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -14,6 +20,11 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 @router.get("", response_model=SettingsRead)
 def read_settings(db: Session = Depends(get_db)):
     settings = get_or_create_settings(db)
+    # Self-healing default, same pattern as get_current_profile: app.main's startup
+    # event already seeds these against the app's own engine, but a request-scoped
+    # session (e.g. under test, where get_db is overridden to a different database)
+    # shouldn't depend on that lifecycle event having touched the same database.
+    ensure_default_networks(db)
     networks = list_networks(db)
     return SettingsRead(
         notify_new_match=settings.notify_new_match,
@@ -44,3 +55,12 @@ def update_settings_endpoint(payload: SettingsUpdate, db: Session = Depends(get_
 def add_network_endpoint(payload: NetworkCreate, db: Session = Depends(get_db)):
     network = add_network(db, payload.name)
     return NetworkRead(id=network.id, name=network.name, active=network.active)
+
+
+@router.patch("/networks/{network_id}", response_model=NetworkRead)
+def update_network_endpoint(network_id: str, payload: NetworkUpdate, db: Session = Depends(get_db)):
+    network = get_network(db, network_id)
+    if network is None:
+        raise HTTPException(status_code=404, detail="Network not found")
+    updated = update_network(db, network, name=payload.name, active=payload.active)
+    return NetworkRead(id=updated.id, name=updated.name, active=updated.active)

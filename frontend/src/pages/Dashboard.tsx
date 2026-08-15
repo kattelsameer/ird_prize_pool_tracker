@@ -28,7 +28,7 @@ export function Dashboard() {
     () => (notifications.data?.items ?? []).filter((n) => n.type === "NEW_MATCH" && !n.read_at),
     [notifications.data]
   );
-  const syncFailed = syncStatus.data?.last_sync?.status === "FAILED";
+  const syncFailed = syncStatus.data?.latest_run?.status === "failed";
 
   const hasAnyNotice = expiringWins.length > 0 || newMatchNotifications.length > 0 || syncFailed;
 
@@ -40,8 +40,8 @@ export function Dashboard() {
           {syncFailed && (
             <NoticeBanner tone="urgent" title="Government synchronization failed">
               Government data could not be updated. Existing data is still available.
-              {syncStatus.data?.last_sync?.error_message && (
-                <> Details: {syncStatus.data.last_sync.error_message}</>
+              {syncStatus.data?.latest_run?.error_message && (
+                <> Details: {syncStatus.data.latest_run.error_message}</>
               )}
             </NoticeBanner>
           )}
@@ -136,11 +136,11 @@ export function Dashboard() {
               <DataSourceBadge source="app">
                 {syncStatus.data.is_running
                   ? "Sync in progress…"
-                  : syncStatus.data.last_sync
+                  : syncStatus.data.latest_run
                   ? `Last synced ${new Date(
-                      syncStatus.data.last_sync.sync_finished_at ?? syncStatus.data.last_sync.sync_started_at
+                      syncStatus.data.latest_run.finished_at ?? syncStatus.data.latest_run.started_at
                     ).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })} (${
-                      syncStatus.data.last_sync.status
+                      syncStatus.data.latest_run.status
                     })`
                   : "Never synced yet"}
               </DataSourceBadge>

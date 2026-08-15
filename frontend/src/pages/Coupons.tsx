@@ -101,8 +101,8 @@ export function Coupons() {
           >
             <option value="">All</option>
             {(settings.data?.networks ?? []).map((n) => (
-              <option key={n} value={n}>
-                {n}
+              <option key={n.id} value={n.name}>
+                {n.name}
               </option>
             ))}
           </select>
@@ -143,7 +143,7 @@ export function Coupons() {
       {isAddOpen && (
         <Modal title="Add a coupon" onClose={() => setIsAddOpen(false)}>
           <CouponForm
-            networks={settings.data?.networks}
+            networks={settings.data?.networks.filter((n) => n.active).map((n) => n.name)}
             onSubmit={handleCreate}
             onCancel={() => setIsAddOpen(false)}
             isSubmitting={createCoupon.isPending}
