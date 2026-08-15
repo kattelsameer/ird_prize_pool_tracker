@@ -22,11 +22,14 @@ export class ApiError extends Error {
   }
 }
 
+// Mirrors the backend's Page[T] schema (app/schemas/common.py) exactly: offset-based
+// pagination, not page-number-based. Callers that think in "page N of size S" (the page
+// components do, for a friendlier UI) convert to limit/offset at the query-building edge.
 export interface Paginated<T> {
   items: T[];
   total: number;
-  page: number;
-  page_size: number;
+  limit: number;
+  offset: number;
 }
 
 type QueryValue = string | number | boolean | undefined | null;

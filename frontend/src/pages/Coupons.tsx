@@ -17,12 +17,11 @@ export function Coupons() {
   const [search, setSearch] = useState("");
   const [fiscalYear, setFiscalYear] = useState("");
   const [network, setNetwork] = useState("");
-  const [matchStatus, setMatchStatus] = useState("");
   const [page, setPage] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Coupon | null>(null);
 
-  const filters = { search, fiscal_year: fiscalYear, network, match_status: matchStatus, page, page_size: 20 };
+  const filters = { search, fiscal_year: fiscalYear, network, page, page_size: 20 };
   const coupons = useCoupons(filters);
   const matches = useMatches();
   const settings = useSettings();
@@ -42,7 +41,7 @@ export function Coupons() {
     });
   }
 
-  const totalPages = coupons.data ? Math.max(1, Math.ceil(coupons.data.total / coupons.data.page_size)) : 1;
+  const totalPages = coupons.data ? Math.max(1, Math.ceil(coupons.data.total / coupons.data.limit)) : 1;
 
   return (
     <div className={styles.page}>
@@ -106,21 +105,6 @@ export function Coupons() {
                 {n}
               </option>
             ))}
-          </select>
-        </div>
-        <div className={styles.filterField}>
-          <label htmlFor="coupon-status-filter">Match status</label>
-          <select
-            id="coupon-status-filter"
-            value={matchStatus}
-            onChange={(e) => {
-              setPage(1);
-              setMatchStatus(e.target.value);
-            }}
-          >
-            <option value="">All</option>
-            <option value="MATCHED">Matched</option>
-            <option value="NO_MATCH">No match</option>
           </select>
         </div>
       </form>

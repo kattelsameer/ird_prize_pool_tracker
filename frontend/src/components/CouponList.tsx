@@ -11,7 +11,7 @@ export interface CouponListProps {
 }
 
 export function deriveMatchStatus(coupon: Coupon, matches: MatchResult[]): MatchStatus {
-  const match = matches.find((m) => m.coupon.id === coupon.id);
+  const match = matches.find((m) => m.coupon_id === coupon.id);
   if (!match) return "NO_MATCH";
   return match.claim_status;
 }

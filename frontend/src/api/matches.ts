@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./client";
-import type { MatchResult, PrizePool } from "./types";
+import type { MatchResult } from "./types";
 
 export function useMatches() {
   return useQuery({
@@ -19,6 +19,8 @@ export function useWins() {
 export function useClaims() {
   return useQuery({
     queryKey: ["claims"],
-    queryFn: () => api.get<PrizePool[]>("/api/claims"),
+    // /api/claims returns the same flat MatchRead[] shape as /matches and /wins
+    // (app/api/matches.py), not raw PrizePoolWinner records.
+    queryFn: () => api.get<MatchResult[]>("/api/claims"),
   });
 }

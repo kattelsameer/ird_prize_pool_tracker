@@ -22,6 +22,10 @@ def list_prize_pools_endpoint(
     date_from: date | None = Query(default=None),
     date_to: date | None = Query(default=None),
     claim_open: bool | None = Query(default=None),
+    claim_status: str | None = Query(
+        default=None, pattern="^(CLAIM_ACTIVE|CLAIM_EXPIRING|CLAIM_EXPIRED)$"
+    ),
+    sort: str = Query(default="-published_at"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
@@ -35,10 +39,17 @@ def list_prize_pools_endpoint(
         date_from=date_from,
         date_to=date_to,
         claim_open=claim_open,
+        claim_status=claim_status,
+        sort=sort,
         limit=limit,
         offset=offset,
     )
-    return Page(items=items, total=total, limit=limit, offset=offset)
+    return Page(
+        items=[PrizePoolWinnerRead.from_model(w) for w in items],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{winner_id}", response_model=PrizePoolWinnerRead)
@@ -46,4 +57,4 @@ def get_prize_pool_endpoint(winner_id: str, db: Session = Depends(get_db)):
     winner = get_winner(db, winner_id)
     if winner is None:
         raise HTTPException(status_code=404, detail="Prize pool record not found")
-    return winner
+    return PrizePoolWinnerRead.from_model(winner)

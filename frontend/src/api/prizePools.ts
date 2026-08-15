@@ -15,9 +15,13 @@ export interface PrizePoolFilters {
 }
 
 export function usePrizePools(filters: PrizePoolFilters = {}) {
+  const pageSize = filters.page_size ?? 20;
+  const page = filters.page ?? 1;
   return useQuery({
     queryKey: ["prize-pools", filters],
     queryFn: () =>
+      // The backend paginates by limit/offset, not page number (app/api/prize_pools.py);
+      // page/page_size here is just a friendlier shape for the UI to think in.
       api.get<Paginated<PrizePool>>(
         `/api/prize-pools${buildQuery({
           fiscal_year: filters.fiscal_year,
@@ -27,8 +31,8 @@ export function usePrizePools(filters: PrizePoolFilters = {}) {
           date_from: filters.date_from,
           date_to: filters.date_to,
           sort: filters.sort,
-          page: filters.page ?? 1,
-          page_size: filters.page_size ?? 20,
+          limit: pageSize,
+          offset: (page - 1) * pageSize,
         })}`
       ),
     placeholderData: (prev) => prev,

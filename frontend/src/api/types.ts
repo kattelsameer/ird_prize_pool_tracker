@@ -33,34 +33,47 @@ export interface PrizePool {
   id: string;
   source_record_id: string;
   draw_id: string;
-  draw_title_en: string;
-  draw_title_np?: string;
-  category: string; // e.g. "Daily Prize" | "Bumper Prize"
+  draw_title_en: string | null;
+  draw_title_np: string | null;
+  category: string | null; // e.g. "Daily Prize" | "Bumper Prize"
   prize_amount: number | null;
   prize_amount_net: number | null;
   coupon_code: string;
   normalized_coupon_code: string;
   fiscal_year: string;
-  network: string | null;
-  eligible_from: string;
-  eligible_to: string;
+  network: string | null; // IRD's public API does not publish network/provider per winner record
+  eligible_from: string | null;
+  eligible_to: string | null;
   published_at: string;
   claim_deadline: string;
   claim_open: boolean;
   claim_status: ClaimStatus;
   source: string;
-  raw_draw_json?: unknown;
   created_at: string;
   updated_at: string;
 }
 
 export type ClaimStatus = "CLAIM_ACTIVE" | "CLAIM_EXPIRING" | "CLAIM_EXPIRED";
 
+// Mirrors the backend's flat MatchRead schema exactly (app/schemas/match.py) --
+// application-derived information (CLAUDE.md §6), not a join of full Coupon/PrizePool
+// records. `coupon_id` is the Coupon's id (primary key), not its human-readable coupon_id
+// field (fiscal-year-prefixed code).
 export interface MatchResult {
-  coupon: Coupon;
-  winner: PrizePool;
-  claim_status: ClaimStatus;
+  coupon_id: string;
+  coupon_code: string;
+  draw_id: string;
+  prize_coupon_number: string;
+  winner_rank: number;
+  category_title_en: string | null;
+  draw_type: string | null;
+  draw_title_en: string | null;
   fiscal_year_unconfirmed: boolean;
+  eligible_period_warning: boolean;
+  claim_status: ClaimStatus;
+  claim_deadline: string;
+  claim_open: boolean;
+  message: string;
 }
 
 export type NotificationType =
@@ -105,9 +118,3 @@ export interface Settings {
   };
 }
 
-export interface Paginated<T> {
-  items: T[];
-  total: number;
-  page: number;
-  page_size: number;
-}
