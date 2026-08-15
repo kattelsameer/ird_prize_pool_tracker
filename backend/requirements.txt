@@ -1,5 +1,5 @@
 # Web framework
-fastapi==0.115.6
+fastapi==0.141.1  # bumped from 0.115.6: pulls in starlette>=1.0.1, fixing PYSEC-2026-161/248/249/1942/1941/2280/2281
 uvicorn[standard]==0.34.0
 
 # Validation / settings
