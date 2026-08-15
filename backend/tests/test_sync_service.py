@@ -115,10 +115,12 @@ def test_sync_failure_preserves_existing_data(db_session):
 def test_new_match_generates_notification(db_session):
     from app.models.notification import Notification
     from app.repositories.coupon_repo import create_coupon
-    from app.repositories.profile_repo import get_or_create_default_profile
+    from app.repositories.profile_repo import get_or_create_profile_for_user
+    from app.repositories.user_repo import create_user
     from app.services import sync_service
 
-    profile = get_or_create_default_profile(db_session)
+    user = create_user(db_session, email="sync-test@example.com", password="test-password-123")
+    profile = get_or_create_profile_for_user(db_session, user.id)
     create_coupon(
         db_session,
         profile_id=profile.id,

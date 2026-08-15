@@ -9,6 +9,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   server.resetHandlers();
   resetMockData();
+  window.localStorage.clear();
 });
 afterAll(() => server.close());
 
@@ -26,3 +27,27 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => false,
   }),
 });
+
+// This project's jsdom/Vitest combo doesn't provide window.localStorage either (confirmed:
+// it's `undefined`, not just unimplemented methods) -- api/client.ts's token storage needs it.
+// A minimal in-memory Storage polyfill, reset between tests as part of afterEach below.
+if (!window.localStorage) {
+  const store = new Map<string, string>();
+  const localStoragePolyfill: Storage = {
+    getItem: (key) => (store.has(key) ? store.get(key)! : null),
+    setItem: (key, value) => {
+      store.set(key, String(value));
+    },
+    removeItem: (key) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+    key: (index) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
+  };
+  Object.defineProperty(window, "localStorage", { writable: true, value: localStoragePolyfill });
+}

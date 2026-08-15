@@ -9,6 +9,7 @@ from app.models.prize_pool import PrizePoolWinner  # noqa: F401
 from app.models.profile import ConsumerProfile  # noqa: F401
 from app.models.settings import AppSettings  # noqa: F401
 from app.models.sync_run import SyncRun  # noqa: F401
+from app.models.user import User  # noqa: F401
 
 __all__ = [
     "Base",
@@ -19,4 +20,5 @@ __all__ = [
     "ConsumerProfile",
     "AppSettings",
     "SyncRun",
+    "User",
 ]

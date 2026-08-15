@@ -8,14 +8,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import coupons, health, matches, notifications, profile, prize_pools, settings as settings_api, sync
+from app.api import auth, coupons, health, matches, notifications, profile, prize_pools, settings as settings_api, sync
 from app.core.config import get_settings
 from app.core.db import SessionLocal, engine
 from app.core.logging import configure_logging
 from app.core.scheduler import shutdown_scheduler, start_scheduler
 from app.models import Base
 from app.repositories.network_repo import ensure_default_networks
-from app.repositories.profile_repo import get_or_create_default_profile
 from app.services.sync_service import run_sync
 
 logger = logging.getLogger("app.main")
@@ -69,6 +68,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(profile.router)
 app.include_router(coupons.router)
 app.include_router(prize_pools.router)
@@ -82,6 +82,12 @@ app.include_router(sync.router)
 def on_startup() -> None:
     logger.info("Application starting (demo_mode=%s)", settings.demo_mode)
 
+    if settings.jwt_secret == "insecure-dev-secret-change-me-before-any-real-deployment":
+        logger.warning(
+            "JWT_SECRET is unset and using the built-in insecure default -- fine for local/"
+            "demo use, but set a real random JWT_SECRET before any shared/public deployment."
+        )
+
     # Table creation: Alembic (`alembic upgrade head`) is the source of truth
     # for schema management (CLAUDE.md §22), but we also create_all here as a
     # safety net for first-run/demo bootstrapping so the app never 500s on a
@@ -90,14 +96,17 @@ def on_startup() -> None:
 
     db = SessionLocal()
     try:
-        get_or_create_default_profile(db)
         ensure_default_networks(db)
 
         if settings.demo_mode:
-            from scripts.seed_demo import seed_demo_data
+            from scripts.seed_demo import DEMO_EMAIL, DEMO_PASSWORD, seed_demo_data
 
             seed_demo_data(db)
-            logger.info("Demo mode: seeded deterministic demo fixtures")
+            logger.info(
+                "Demo mode: seeded deterministic demo fixtures. Log in with %s / %s",
+                DEMO_EMAIL,
+                DEMO_PASSWORD,
+            )
     finally:
         db.close()
 

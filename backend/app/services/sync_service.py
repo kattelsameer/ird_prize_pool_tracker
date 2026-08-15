@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.integrations.ird.ird_client import IrdClient, IrdClientConfig, IrdClientError
-from app.repositories.profile_repo import get_or_create_default_profile
+from app.repositories.profile_repo import list_all_profiles
 from app.repositories.prize_pool_repo import upsert_winner
 from app.repositories.sync_repo import finish_sync_run, get_latest_sync_run, start_sync_run
 from app.services.matching_service import compute_matches_for_profile
@@ -118,20 +118,21 @@ def run_sync(db: Session | None = None) -> str:
             records_skipped,
         )
 
-        # Refresh matches/notifications only if there's any chance something
+        # Refresh matches/notifications for every registered user, not just one
+        # implicit profile -- prize-pool data is global, but matches/notifications
+        # are personal per account. Only bother if there's any chance something
         # changed (new/updated winners) -- avoids noisy "sync completed"
         # notifications on truly no-op syncs (CLAUDE.md §33).
-        profile = get_or_create_default_profile(session)
-
         if records_inserted or records_updated or previously_failing:
-            matches = compute_matches_for_profile(session, profile.id)
-            generate_match_and_claim_notifications(session, profile.id, matches)
-            if records_inserted:
-                generate_sync_data_notification(
-                    session, profile.id, sync_run_id=run.id, new_winner_count=records_inserted
-                )
-            elif previously_failing:
-                generate_sync_recovered_notification(session, profile.id, sync_run_id=run.id)
+            for profile in list_all_profiles(session):
+                matches = compute_matches_for_profile(session, profile.id)
+                generate_match_and_claim_notifications(session, profile.id, matches)
+                if records_inserted:
+                    generate_sync_data_notification(
+                        session, profile.id, sync_run_id=run.id, new_winner_count=records_inserted
+                    )
+                elif previously_failing:
+                    generate_sync_recovered_notification(session, profile.id, sync_run_id=run.id)
             session.commit()
 
         return run.id
@@ -140,8 +141,8 @@ def run_sync(db: Session | None = None) -> str:
         session.rollback()
         logger.error("Sync failed (IRD client error): %s", exc)
         finish_sync_run(session, run, status="failed", error_message=str(exc))
-        profile = get_or_create_default_profile(session)
-        generate_sync_failed_notification(session, profile.id, sync_run_id=run.id)
+        for profile in list_all_profiles(session):
+            generate_sync_failed_notification(session, profile.id, sync_run_id=run.id)
         session.commit()
         return run.id
     except Exception as exc:  # noqa: BLE001 - never let a sync crash the scheduler
