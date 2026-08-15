@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client";
-import type { Profile } from "./types";
+import { clearStoredToken } from "./client";
+import type { AccountExport, Profile } from "./types";
 
 const KEY = ["profile"] as const;
 
@@ -18,6 +19,23 @@ export function useUpdateProfile() {
       api.put<Profile>("/api/profile", input),
     onSuccess: (data) => {
       queryClient.setQueryData(KEY, data);
+    },
+  });
+}
+
+export function useExportAccountData() {
+  return useMutation({
+    mutationFn: () => api.get<AccountExport>("/api/profile/export"),
+  });
+}
+
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.delete<void>("/api/profile"),
+    onSuccess: () => {
+      clearStoredToken();
+      queryClient.clear();
     },
   });
 }

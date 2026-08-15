@@ -11,6 +11,48 @@ pytest.importorskip("fastapi")
 pytest.importorskip("sqlalchemy")
 
 
+def test_login_is_rate_limited_per_ip(unauthenticated_client):
+    from app.core.rate_limit import AUTH_RATE_LIMIT_PER_MINUTE as limit
+    from app.core.rate_limit import reset_rate_limits
+
+    unauthenticated_client.post(
+        "/api/auth/register", json={"email": VALID_EMAIL, "password": VALID_PASSWORD}
+    )
+    # Register and login share one limit per IP (both are credential-guessing
+    # surfaces) -- reset so the registration call above doesn't eat into the
+    # budget this test is specifically exercising for login.
+    reset_rate_limits()
+
+    # Exhaust the limit with wrong-password attempts (a brute-force login is
+    # exactly what this protects against, not a config edge case).
+    for _ in range(limit):
+        response = unauthenticated_client.post(
+            "/api/auth/login", json={"email": VALID_EMAIL, "password": "wrong-password"}
+        )
+        assert response.status_code == 401
+
+    blocked = unauthenticated_client.post(
+        "/api/auth/login", json={"email": VALID_EMAIL, "password": "wrong-password"}
+    )
+    assert blocked.status_code == 429
+    assert "detail" in blocked.json()
+
+
+def test_register_is_rate_limited_per_ip(unauthenticated_client):
+    from app.core.rate_limit import AUTH_RATE_LIMIT_PER_MINUTE as limit
+
+    for i in range(limit):
+        response = unauthenticated_client.post(
+            "/api/auth/register", json={"email": f"rl-user-{i}@example.com", "password": VALID_PASSWORD}
+        )
+        assert response.status_code == 201
+
+    blocked = unauthenticated_client.post(
+        "/api/auth/register", json={"email": "one-more@example.com", "password": VALID_PASSWORD}
+    )
+    assert blocked.status_code == 429
+
+
 @pytest.mark.parametrize("name,payload,expected_status", REGISTER_CASES)
 def test_register_cases(unauthenticated_client, name, payload, expected_status):
     response = unauthenticated_client.post("/api/auth/register", json=payload)
