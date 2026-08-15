@@ -4,7 +4,9 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import ForeignKey, String
+
+from app.models.types import TZDateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.timeutil import now_kathmandu
@@ -27,5 +29,5 @@ class Notification(Base):
     # the same (type, coupon, draw) combination (CLAUDE.md §33/§10e).
     dedup_key: Mapped[str] = mapped_column(String(300), unique=True, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_kathmandu, index=True)
-    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(TZDateTime(), default=now_kathmandu, index=True)
+    read_at: Mapped[datetime | None] = mapped_column(TZDateTime(), nullable=True)

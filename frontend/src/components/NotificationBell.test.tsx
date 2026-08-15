@@ -41,8 +41,13 @@ describe("NotificationBell", () => {
     await user.click(await screen.findByLabelText(/notifications, 2 unread/i));
     await user.click(screen.getByRole("button", { name: /mark all read/i }));
 
+    // Once nothing is unread, the bell button's own label drops the "N
+    // unread" suffix and reads plain "Notifications". Scope the query to
+    // the button role specifically -- the still-open panel is a `dialog`
+    // that also carries an aria-label of "Notifications", so an unscoped
+    // getByLabelText match is ambiguous between the two elements.
     await waitFor(() => {
-      expect(screen.getByLabelText(/^notifications$/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^notifications$/i })).toBeInTheDocument();
     });
   });
 });

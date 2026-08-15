@@ -9,7 +9,9 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import String
+
+from app.models.types import TZDateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.timeutil import now_kathmandu
@@ -21,7 +23,7 @@ class ConsumerProfile(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     display_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_kathmandu)
+    created_at: Mapped[datetime] = mapped_column(TZDateTime(), default=now_kathmandu)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=now_kathmandu, onupdate=now_kathmandu
+        TZDateTime(), default=now_kathmandu, onupdate=now_kathmandu
     )

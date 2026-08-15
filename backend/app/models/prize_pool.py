@@ -10,7 +10,9 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint
+from sqlalchemy import Boolean, Date, ForeignKey, Integer, JSON, String, UniqueConstraint
+
+from app.models.types import TZDateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.timeutil import now_kathmandu
@@ -35,8 +37,8 @@ class PrizePoolWinner(Base):
 
     eligible_from: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     eligible_to: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
-    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    claim_deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    published_at: Mapped[datetime] = mapped_column(TZDateTime(), nullable=False)
+    claim_deadline: Mapped[datetime] = mapped_column(TZDateTime(), nullable=False, index=True)
     claim_open: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     winner_rank: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -51,7 +53,7 @@ class PrizePoolWinner(Base):
         String(36), ForeignKey("sync_runs.id"), nullable=True
     )
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_kathmandu)
+    created_at: Mapped[datetime] = mapped_column(TZDateTime(), default=now_kathmandu)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=now_kathmandu, onupdate=now_kathmandu
+        TZDateTime(), default=now_kathmandu, onupdate=now_kathmandu
     )
