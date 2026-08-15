@@ -53,6 +53,12 @@ export function Modal({ title, onClose, children }: ModalProps) {
   }, [onClose]);
 
   return createPortal(
+    // Backdrop click-to-dismiss is a mouse-only convenience layered on a
+    // non-interactive container -- keyboard users already have two fully
+    // equivalent ways to close (Escape, handled above, and the visible
+    // Close button below), so the overlay itself doesn't need its own
+    // keyboard/role semantics.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       className={styles.overlay}
       onMouseDown={(e) => {
