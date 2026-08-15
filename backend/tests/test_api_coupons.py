@@ -5,9 +5,17 @@ requirements.txt deviation note for why) -- written and structured to run
 cleanly once `pip install -r requirements.txt` succeeds in an environment with
 package-registry access.
 """
+from datetime import date, datetime, timezone
+
 import pytest
 
-from tests.data_api_coupons import CREATE_COUPON_CASES, DUPLICATE_COUPON_PAYLOAD
+from tests.data_api_coupons import (
+    CREATE_COUPON_CASES,
+    DUPLICATE_COUPON_PAYLOAD,
+    EXISTING_WINNER_COUPON_CODE,
+    EXISTING_WINNER_DRAW_ID,
+    MATCHING_COUPON_PAYLOAD,
+)
 
 pytest.importorskip("fastapi")
 pytest.importorskip("sqlalchemy")
@@ -53,6 +61,43 @@ def test_get_update_delete_lifecycle(client):
 
     missing = client.get(f"/api/coupons/{coupon_id}")
     assert missing.status_code == 404
+
+
+def test_creating_a_coupon_that_matches_an_existing_winner_notifies_immediately(client, db_session):
+    from app.models.prize_pool import PrizePoolWinner
+
+    winner = PrizePoolWinner(
+        source_record_id="test-source-existing-winner",
+        draw_id=EXISTING_WINNER_DRAW_ID,
+        category_title_en="Daily Prize",
+        draw_type="GENERAL",
+        draw_title_en="Test Draw",
+        eligible_from=date(2026, 7, 17),
+        eligible_to=date(2026, 7, 31),
+        published_at=datetime(2026, 8, 7, tzinfo=timezone.utc),
+        claim_deadline=datetime(2026, 8, 22, tzinfo=timezone.utc),
+        claim_open=True,
+        winner_rank=1,
+        prize_fiscal_year_code="2083-84",
+        prize_coupon_number=EXISTING_WINNER_COUPON_CODE,
+        normalized_coupon_code=EXISTING_WINNER_COUPON_CODE,
+        raw_draw_json={},
+    )
+    db_session.add(winner)
+    db_session.commit()
+
+    response = client.post("/api/coupons", json=MATCHING_COUPON_PAYLOAD)
+    assert response.status_code == 201
+
+    notifications = client.get("/api/notifications").json()["items"]
+    assert any(n["type"] == "NEW_MATCH" for n in notifications), notifications
+
+    # Re-fetching (idempotency check) must not create a second NEW_MATCH notification.
+    again = client.get("/api/wins")
+    assert again.status_code == 200
+    notifications_after = client.get("/api/notifications").json()["items"]
+    new_match_count = sum(1 for n in notifications_after if n["type"] == "NEW_MATCH")
+    assert new_match_count == 1
 
 
 def test_healthz(client):

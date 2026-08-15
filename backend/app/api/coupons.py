@@ -14,8 +14,23 @@ from app.repositories.coupon_repo import (
 )
 from app.schemas.common import Page
 from app.schemas.coupon import CouponCreate, CouponRead, CouponUpdate
+from app.services.matching_service import compute_matches_for_profile
+from app.services.notification_service import generate_match_and_claim_notifications
 
 router = APIRouter(prefix="/api/coupons", tags=["coupons"])
+
+
+def _refresh_matches_and_notify(db: Session, profile_id: str) -> None:
+    """Re-evaluate matches for this profile and notify on anything newly
+    eligible. A coupon added (or edited) *after* a sync already found the
+    matching winner would otherwise surface only on the dashboard/wins view
+    with no notification -- CLAUDE.md §33 lists "newly eligible coupon" as
+    its own notification trigger, distinct from sync-time match discovery.
+    `generate_match_and_claim_notifications` dedupes by (coupon_id, draw_id),
+    so this never double-notifies if a later sync reprocesses the same match.
+    """
+    matches = compute_matches_for_profile(db, profile_id)
+    generate_match_and_claim_notifications(db, profile_id, matches)
 
 
 @router.get("", response_model=Page[CouponRead])
@@ -46,7 +61,7 @@ def create_coupon_endpoint(
     db: Session = Depends(get_db),
     profile: ConsumerProfile = Depends(get_current_profile),
 ):
-    return create_coupon(
+    coupon = create_coupon(
         db,
         profile_id=profile.id,
         coupon_code=payload.coupon_code,
@@ -54,6 +69,8 @@ def create_coupon_endpoint(
         fiscal_year=payload.fiscal_year,
         network=payload.network,
     )
+    _refresh_matches_and_notify(db, profile.id)
+    return coupon
 
 
 @router.get("/{coupon_id}", response_model=CouponRead)
@@ -79,7 +96,7 @@ def update_coupon_endpoint(
     if coupon is None:
         raise HTTPException(status_code=404, detail="Coupon not found")
     update_kwargs = payload.model_dump(exclude_unset=True)
-    return update_coupon(
+    updated = update_coupon(
         db,
         coupon,
         coupon_code=update_kwargs.get("coupon_code"),
@@ -87,6 +104,8 @@ def update_coupon_endpoint(
         fiscal_year=update_kwargs.get("fiscal_year", ...),
         network=update_kwargs.get("network", ...),
     )
+    _refresh_matches_and_notify(db, profile.id)
+    return updated
 
 
 @router.delete("/{coupon_id}", status_code=204)
