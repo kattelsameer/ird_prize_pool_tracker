@@ -90,7 +90,21 @@ See `backend/.env.example` and `frontend/.env.example` for the full list. Key on
 | `DEMO_MODE` | backend | `true` = seed deterministic demo fixtures, skip live IRD sync/scheduler |
 | `CORS_ORIGINS` | backend | comma-separated allowed frontend origins |
 | `IRD_API_BASE_URL` | backend | defaults to the real `https://prize.ird.gov.np/api/v1/public` |
+| `JWT_SECRET` | backend | signs login tokens; **the built-in default is insecure and logs a startup warning** — set a real random value (`python3 -c "import secrets; print(secrets.token_hex(32))"`) before any shared/public deployment |
 | `VITE_API_BASE_URL` | frontend | base path/URL the SPA calls; `/api` behind the nginx proxy in Docker |
+
+## Authentication
+
+Real accounts: `POST /api/auth/register` (email + password, min 8 characters) and
+`POST /api/auth/login` both return a JWT the frontend stores in `localStorage` and sends as
+`Authorization: Bearer <token>` on every request (`src/api/client.ts`). Each account gets its
+own private `ConsumerProfile` — coupons, notifications, and settings are all scoped to it and
+never visible to another account. `GET /api/prize-pools` (published government data) is the
+one deliberate exception and stays public/unauthenticated.
+
+In `DEMO_MODE=true`, a seeded demo account is created automatically — check the backend
+container logs for `Demo mode: seeded deterministic demo fixtures. Log in with <email> / <password>`
+(credentials aren't hardcoded here so they don't drift from `scripts/seed_demo.py`).
 
 ## Migrations
 
@@ -151,14 +165,17 @@ an earlier revision of this section described what *couldn't* be verified there.
 been fully built, tested, and Dockerized end-to-end in a real environment — the numbers below
 are actual, current results, not estimates:
 
-- **Backend**: 55 pytest tests pass (`cd backend && pytest`), covering models, repositories,
-  every API route (including live-verified sort/filter/pagination on `/api/prize-pools` and
-  add/rename/deactivate on `/api/settings/networks`), matching rules, claim-status boundaries,
-  the Nepal fiscal-year boundary, normalization, sync idempotency/failure-handling, and the
-  IRD client's retry/backoff/pagination logic against a mocked transport.
-- **Frontend**: 43 Vitest/RTL tests pass (`cd frontend && npm test`), `tsc --noEmit` is clean,
-  the production build (`npm run build`) succeeds, and the Playwright E2E spec
-  (`npm run e2e`) passes the full consumer journey against a deterministic mock backend.
+- **Backend**: 76 pytest tests pass (`cd backend && pytest`), covering models, repositories,
+  every API route (including live-verified sort/filter/pagination on `/api/prize-pools`,
+  add/rename/deactivate on `/api/settings/networks`, and register/login/me/per-account data
+  isolation on `/api/auth/*`), matching rules, claim-status boundaries, the Nepal fiscal-year
+  boundary, normalization, password hashing/JWT roundtrip and expiry, sync idempotency/
+  failure-handling, and the IRD client's retry/backoff/pagination logic against a mocked
+  transport.
+- **Frontend**: 53 Vitest/RTL tests pass (`cd frontend && npm test`), `tsc --noEmit` is clean,
+  the production build (`npm run build`) succeeds, and both Playwright E2E specs
+  (`npm run e2e`) pass — the full consumer journey, and register/logout/login — against a
+  deterministic mock backend.
 - **Docker**: `docker compose up --build` builds and starts both containers; both pass their
   health checks; a real sync against the live `prize.ird.gov.np` API, coupon CRUD, matching,
   notifications, claim countdowns, and settings/network management were all manually verified
@@ -170,8 +187,12 @@ are actual, current results, not estimates:
   on either side of the FY2082-83/2083-84 boundary). The fallback table remains in place for
   any environment where the package genuinely isn't installed; nothing in the matching engine
   depends on it being exact either way, since IRD publishes `prize_fiscal_year_code` directly.
-- **Single implicit consumer profile, no authentication** — appropriate for local/personal
-  use per CLAUDE.md §23; see `SECURITY.md` before any shared/public deployment.
+- **Real multi-user accounts** — email/password login (bcrypt + JWT, `app/core/security.py`),
+  each account gets its own private `ConsumerProfile` (coupons/notifications/settings are
+  scoped per-profile and never visible across accounts — verified live with two separate
+  accounts). Prize-pool data (`/api/prize-pools`) stays public/unauthenticated, since it's
+  published government data, not personal to any account. See `SECURITY.md` for the
+  `JWT_SECRET` requirement before any shared/public deployment.
 - **IRD site body content could not be scraped** (client-rendered SPA, no server HTML) — the
   live API was fetched directly instead and is the authoritative source used throughout;
   see `RESEARCH.md` for exactly what was confirmed live vs. sourced from the spec.

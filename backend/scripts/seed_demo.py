@@ -28,12 +28,15 @@ from app.models.prize_pool import PrizePoolWinner
 from app.domain.normalization import normalize_coupon_code
 from app.repositories.coupon_repo import create_coupon
 from app.repositories.network_repo import ensure_default_networks
-from app.repositories.profile_repo import get_or_create_default_profile
+from app.repositories.profile_repo import get_or_create_profile_for_user
+from app.repositories.user_repo import create_user, get_user_by_email
 from sqlalchemy import select
 
 logger = logging.getLogger("scripts.seed_demo")
 
 DEMO_SOURCE = "demo"
+DEMO_EMAIL = "demo@example.com"
+DEMO_PASSWORD = "demo12345"  # noqa: S105 - intentionally public; demo-mode-only account
 
 
 def _demo_winner_rows(now):
@@ -136,7 +139,10 @@ def _demo_coupons():
 
 def seed_demo_data(db: Session) -> None:
     now = now_kathmandu()
-    profile = get_or_create_default_profile(db)
+    user = get_user_by_email(db, DEMO_EMAIL)
+    if user is None:
+        user = create_user(db, email=DEMO_EMAIL, password=DEMO_PASSWORD)
+    profile = get_or_create_profile_for_user(db, user.id)
     ensure_default_networks(db)
 
     inserted_winners = 0

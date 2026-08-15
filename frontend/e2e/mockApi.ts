@@ -6,8 +6,11 @@ import {
   fixturePrizePools,
   fixtureSettings,
   fixtureSyncStatus,
+  fixtureUser,
 } from "../src/test/fixtures";
 import type { Coupon, CouponInput } from "../src/api/types";
+
+export const E2E_TEST_PASSWORD = "test-password-123";
 
 /**
  * Deterministic in-process mock backend for E2E, wired via Playwright route interception.
@@ -16,6 +19,28 @@ import type { Coupon, CouponInput } from "../src/api/types";
 export async function installMockApi(page: Page) {
   let coupons: Coupon[] = [...fixtureCoupons];
   let notifications = [...fixtureNotifications];
+
+  const token = "e2e-fixture-token";
+
+  await page.route("**/api/auth/register", async (route) => {
+    await route.fulfill({ status: 201, json: { access_token: token, token_type: "bearer", user: fixtureUser } });
+  });
+  await page.route("**/api/auth/login", async (route) => {
+    const body = route.request().postDataJSON() as { email: string; password: string };
+    if (body.email === fixtureUser.email && body.password === E2E_TEST_PASSWORD) {
+      await route.fulfill({ json: { access_token: token, token_type: "bearer", user: fixtureUser } });
+      return;
+    }
+    await route.fulfill({ status: 401, json: { detail: "Incorrect email or password" } });
+  });
+  await page.route("**/api/auth/me", async (route) => {
+    const auth = route.request().headers()["authorization"] ?? "";
+    if (auth === `Bearer ${token}`) {
+      await route.fulfill({ json: fixtureUser });
+      return;
+    }
+    await route.fulfill({ status: 401, json: { detail: "Not authenticated" } });
+  });
 
   await page.route("**/api/coupons**", async (route) => {
     const request = route.request();

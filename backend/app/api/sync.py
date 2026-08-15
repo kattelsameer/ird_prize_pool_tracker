@@ -6,7 +6,8 @@ import threading
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db
+from app.models.user import User
 from app.repositories.sync_repo import get_latest_sync_run
 from app.schemas.sync import SyncRunRead, SyncStatusRead, SyncTriggerResponse
 from app.services.sync_service import is_sync_in_progress, run_sync
@@ -26,7 +27,7 @@ def sync_status_endpoint(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=SyncTriggerResponse, status_code=202)
-def trigger_sync_endpoint():
+def trigger_sync_endpoint(user: User = Depends(get_current_user)):
     if is_sync_in_progress():
         return SyncTriggerResponse(accepted=False, message="A synchronization is already in progress.")
 

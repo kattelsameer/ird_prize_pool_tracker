@@ -36,12 +36,28 @@ access; this environment does, so real CVE data replaces that caveat below.
 - **Docker**: backend image installs only pinned `requirements.txt` deps; no `--privileged`,
   no host network mode; nginx frontend image serves static files only, proxies `/api/` to
   the backend service by Docker Compose service name (not user-controllable).
+- **Authentication** (added this revision, replacing the earlier no-auth design):
+  - Passwords are hashed with bcrypt (`app/core/security.py`), never stored or logged in
+    plaintext; `hash_password` rejects inputs over bcrypt's 72-byte limit rather than letting
+    bcrypt silently truncate them.
+  - Login and register both return the exact same generic "Incorrect email or password" /
+    account-exists messaging shape regardless of which check failed, to avoid leaking which
+    emails have accounts (account-enumeration resistance).
+  - `decode_access_token` fails closed on any problem (expired, malformed, wrong signature,
+    unknown user) with a single 401 and never distinguishes the reason to the client —
+    verified with dedicated tests for each failure mode (`tests/test_security.py`).
+  - Verified live with two separate real accounts that coupons/notifications/settings never
+    leak across accounts (`tests/test_api_auth.py::test_two_accounts_never_see_each_others_coupons`,
+    plus a live curl-based check against the running Docker containers).
+  - `/api/sync` (trigger) now requires authentication too — previously anyone could trigger a
+    sync against the live IRD API with no rate limit at all (CLAUDE.md §39's "do not hammer
+    the government service" had no enforcement behind it whatsoever).
 
 ## Dependency audit (Mode 3) — live, not inspection-only
 
 ### Backend (`pip-audit -r backend/requirements.txt`)
 
-Applied, verified against the full test suite (55 passed) and a Docker rebuild:
+Applied, verified against the full test suite (76 passed) and a Docker rebuild:
 
 | Package | Before | After | Advisory |
 |---|---|---|---|
@@ -111,18 +127,28 @@ none of the remaining findings are reachable in this app's actual deployed attac
 - No CI/CD pipeline exists yet in this repo to audit for pipeline-injection/secret-scoping
   issues (out of scope until one is added).
 
-## Residual risks / accepted limitations (unchanged from prior review, still applicable)
+## Residual risks / accepted limitations
 
-1. **No authentication.** Per §23, this is intentionally a local/single-profile app
-   (`get_or_create_default_profile` always resolves to one implicit profile). Acceptable for
-   personal local use; **must not** be exposed on a shared/public network as-is. The data
-   model (`profile_id` foreign keys throughout) supports adding real auth later without a
-   schema rewrite.
-2. **SQLite + no encryption at rest.** Judged acceptable for a single-user local deployment
-   storing no PAN/bank data; add SQLCipher or filesystem-level encryption if the host disk
-   isn't trusted.
-3. **Rate limiting**: no per-IP rate limiting on the FastAPI app itself. Fine for single-user
-   local use; add `slowapi` or a reverse-proxy rate limit before any public exposure.
+1. **`JWT_SECRET` must be changed before any shared/public deployment.** The built-in default
+   (`insecure-dev-secret-change-me-before-any-real-deployment`) exists only so `docker compose
+   up` works out of the box for local/demo use; `app.main`'s startup logs a loud warning if
+   it's still in use. Set a real random value via the `JWT_SECRET` env var first.
+2. **No rate limiting on `/api/auth/login` or `/api/auth/register`.** There's nothing here to
+   slow down a credential-stuffing or account-enumeration-via-registration attempt beyond the
+   generic-error-message mitigation already in place (see above). Fine for local/personal use
+   behind a trusted network; add `slowapi` or a reverse-proxy rate limit (e.g. nginx
+   `limit_req`) on these two routes specifically before any public exposure.
+3. **No email verification or password reset flow.** Registration accepts any syntactically
+   valid email with no confirmation step, and there's no way to recover a lost password short
+   of direct database access. Acceptable for a personal/local tool; a real deployment would
+   need both before onboarding real users who might lose access.
+4. **SQLite + no encryption at rest.** Judged acceptable for a single-user-per-account local
+   deployment storing no PAN/bank data; add SQLCipher or filesystem-level encryption if the
+   host disk isn't trusted. `hashed_password` is bcrypt-hashed regardless, so this specifically
+   affects coupon/notification data, not credentials.
+5. **General rate limiting**: no per-IP rate limiting on the FastAPI app as a whole beyond the
+   auth-specific concern above. Fine for personal local use; add `slowapi` or a reverse-proxy
+   rate limit before any public exposure.
 
 ## Summary
 
@@ -132,3 +158,9 @@ or verified-unreachable-in-this-codebase; documented with reasoning rather than 
 the CVSS number alone. Two dependency upgrades (FastAPI+Starlette, react-router v7) are
 flagged as real, prioritized follow-up work — not silently ignored — because they require
 dedicated breaking-change migrations this pass didn't have the scope to safely rush.
+
+Real authentication now protects every personal-data endpoint (verified live with two
+separate accounts and no data leakage between them); the two residual auth-related gaps
+(no rate limiting on login/register, no email verification/password reset) are appropriate
+for the app's current personal/local-use scope and are called out above, not silently
+carried forward.
