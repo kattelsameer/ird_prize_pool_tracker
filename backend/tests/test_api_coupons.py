@@ -103,4 +103,6 @@ def test_creating_a_coupon_that_matches_an_existing_winner_notifies_immediately(
 def test_healthz(client):
     response = client.get("/healthz")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["version"]

@@ -8,6 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app import __version__
 from app.api import auth, coupons, health, matches, notifications, profile, prize_pools, settings as settings_api, sync
 from app.core.config import get_settings
 from app.core.db import SessionLocal, engine
@@ -29,7 +30,7 @@ app = FastAPI(
         "Program prize pool. Not affiliated with or endorsed by the Government "
         "of Nepal or the Inland Revenue Department."
     ),
-    version="1.0.0",
+    version=__version__,
 )
 
 app.add_middleware(
