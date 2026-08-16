@@ -9,8 +9,13 @@ reports as quickly as we can and aim to have a fix released before any public di
 
 ## Supported versions
 
-This project doesn't yet have tagged releases; security fixes are applied to the `master`
-branch. Always run the latest `master`.
+| Version | Supported |
+|---|---|
+| 0.1.x | ✅ |
+| < 0.1.0 | ❌ |
+
+Security fixes are applied to `master` and released under a new patch version. Always run the
+latest tagged release.
 
 ## Security measures
 
