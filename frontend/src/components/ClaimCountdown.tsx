@@ -1,15 +1,23 @@
 import { useEffect, useState } from "react";
 import { claimStatusPresentation, computeClaimCountdown } from "../lib/claimStatus";
+import { NoticeBanner, type NoticeTone } from "./NoticeBanner";
 import type { ClaimStatus } from "../api/types";
-import styles from "./ClaimCountdown.module.css";
 
 export interface ClaimCountdownProps {
   claimDeadline: string;
   claimStatus: ClaimStatus;
 }
 
+const TONE_BY_CLAIM_TONE: Record<ReturnType<typeof claimStatusPresentation>["tone"], NoticeTone> = {
+  active: "success",
+  expiring: "warning",
+  expired: "urgent",
+};
+
 /** Live-updating claim deadline countdown. Recomputes every minute; never overrides the
- * server's authoritative claim_status (§34), only renders it alongside a friendly countdown. */
+ * server's authoritative claim_status (§34), only renders it alongside a friendly countdown.
+ * Reuses NoticeBanner's icon+title+body treatment rather than a parallel implementation, so
+ * every tone-colored callout in the app shares one visual language. */
 export function ClaimCountdown({ claimDeadline, claimStatus }: ClaimCountdownProps) {
   const [now, setNow] = useState(() => new Date());
 
@@ -22,25 +30,20 @@ export function ClaimCountdown({ claimDeadline, claimStatus }: ClaimCountdownPro
   const presentation = claimStatusPresentation(claimStatus);
 
   return (
-    <div className={`${styles.wrapper} ${styles[presentation.tone]}`} role="status">
-      <span aria-hidden="true" className={styles.icon}>
-        {presentation.icon}
-      </span>
-      <span className={styles.text}>
-        <strong>{presentation.label}.</strong> {countdown.label}
-        {!countdown.isExpired && (
-          <>
-            {" "}
-            (by{" "}
-            {new Date(claimDeadline).toLocaleString("en-US", {
-              dateStyle: "medium",
-              timeStyle: "short",
-              timeZone: "Asia/Kathmandu",
-            })}{" "}
-            Nepal time)
-          </>
-        )}
-      </span>
-    </div>
+    <NoticeBanner tone={TONE_BY_CLAIM_TONE[presentation.tone]} title={presentation.label}>
+      {countdown.label}
+      {!countdown.isExpired && (
+        <>
+          {" "}
+          (by{" "}
+          {new Date(claimDeadline).toLocaleString("en-US", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "Asia/Kathmandu",
+          })}{" "}
+          Nepal time)
+        </>
+      )}
+    </NoticeBanner>
   );
 }

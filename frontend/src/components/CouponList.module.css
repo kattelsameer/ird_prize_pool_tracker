@@ -3,7 +3,6 @@
   border-collapse: collapse;
   background: var(--color-surface);
   border-radius: var(--radius-md);
-  overflow: hidden;
 }
 
 .table th,
@@ -12,6 +11,7 @@
   text-align: left;
   border-bottom: 1px solid var(--color-border);
   font-size: var(--font-size-sm);
+  white-space: nowrap;
 }
 
 .table th {
@@ -19,14 +19,17 @@
   font-weight: 700;
 }
 
+/* The table can legitimately need more width than the page column at in-between sizes
+   (tablet-ish windows) once every status cell is single-line -- scroll it horizontally
+   there rather than letting rows wrap back to multiple lines each. */
+.desktopOnly {
+  overflow-x: auto;
+}
+
 .actionsCell {
   display: flex;
   gap: var(--space-3);
   align-items: center;
-}
-
-.actionLink {
-  font-weight: 600;
 }
 
 .deleteButton {
@@ -38,33 +41,66 @@
   cursor: pointer;
   font-size: var(--font-size-xs);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .deleteButton:hover {
   background: var(--color-danger-bg);
 }
 
+.mobileOnly {
+  display: none;
+}
+
+.cardList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cardTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cardCode {
+  font-weight: 700;
+  font-size: var(--font-size-md);
+}
+
+.cardMeta {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.cardBottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 @media (max-width: 700px) {
-  .table thead {
+  .desktopOnly {
     display: none;
   }
-  .table,
-  .table tbody,
-  .table tr,
-  .table td {
-    display: block;
-    width: 100%;
-  }
-  .table tr {
-    border-bottom: 2px solid var(--color-border);
-    padding: var(--space-3) 0;
-  }
-  .table td {
-    border-bottom: none;
-    padding: var(--space-1) var(--space-4);
-  }
-  .table td[data-label]::before {
-    content: attr(data-label) ": ";
-    font-weight: 700;
+  .mobileOnly {
+    display: flex;
   }
 }

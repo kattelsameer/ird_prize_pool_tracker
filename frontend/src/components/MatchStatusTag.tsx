@@ -1,4 +1,4 @@
-import styles from "./MatchStatusTag.module.css";
+import { StatusPill, type PillTone } from "./StatusPill";
 
 export type MatchStatus =
   | "NOT_CHECKED"
@@ -8,7 +8,7 @@ export type MatchStatus =
   | "CLAIM_EXPIRING"
   | "CLAIM_EXPIRED";
 
-const CONFIG: Record<MatchStatus, { icon: string; label: string; tone: string }> = {
+const CONFIG: Record<MatchStatus, { icon: string; label: string; tone: PillTone }> = {
   NOT_CHECKED: { icon: "…", label: "Not yet checked", tone: "neutral" },
   NO_MATCH: { icon: "–", label: "No match found yet", tone: "neutral" },
   MATCHED: { icon: "🎉", label: "Matched", tone: "success" },
@@ -19,9 +19,5 @@ const CONFIG: Record<MatchStatus, { icon: string; label: string; tone: string }>
 
 export function MatchStatusTag({ status }: { status: MatchStatus }) {
   const config = CONFIG[status] ?? CONFIG.NOT_CHECKED;
-  return (
-    <span className={`${styles.tag} ${styles[config.tone]}`}>
-      <span aria-hidden="true">{config.icon}</span> {config.label}
-    </span>
-  );
+  return <StatusPill tone={config.tone} icon={config.icon} label={config.label} />;
 }

@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-5);
-  max-width: 1100px;
+  max-width: var(--page-width-data);
   margin: 0 auto;
   width: 100%;
 }
@@ -40,6 +40,7 @@
 .summaryCard {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   border-radius: var(--radius-md);
   padding: var(--space-4);
 }
@@ -63,6 +64,7 @@
   flex-wrap: wrap;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   border-radius: var(--radius-md);
   padding: var(--space-4);
 }
@@ -91,7 +93,37 @@
 .updateItem {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   border-radius: var(--radius-sm);
   padding: var(--space-3);
   font-size: var(--font-size-sm);
+}
+
+.exploreLink {
+  align-self: flex-start;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+/* On phones, 3 stacked near-full-height cards make a single number dominate the
+   screen -- force a compact 3-across row instead, matching the desktop layout's
+   intent at a smaller scale rather than abandoning it. */
+@media (max-width: 700px) {
+  .summaryGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+  }
+
+  .summaryCard {
+    padding: var(--space-2);
+    text-align: center;
+  }
+
+  .summaryValue {
+    font-size: var(--font-size-lg);
+  }
+
+  .summaryLabel {
+    font-size: 0.7rem;
+  }
 }

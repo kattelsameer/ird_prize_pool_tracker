@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: var(--space-5);
   padding: var(--space-5);
-  max-width: 700px;
+  max-width: var(--page-width-form);
   margin: 0 auto;
   width: 100%;
 }
@@ -11,6 +11,7 @@
 .section {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   border-radius: var(--radius-md);
   padding: var(--space-4);
   display: flex;
@@ -36,6 +37,9 @@
   gap: var(--space-3);
 }
 
+/* Reserved for genuinely destructive, hard-to-reverse actions (deleting the account) --
+   not for routine settings changes like deactivating a network, which used to share this
+   same alarm-red styling despite being low-stakes and fully reversible. */
 .removeButton {
   background: none;
   border: 1px solid var(--color-danger-border);
@@ -43,6 +47,20 @@
   border-radius: var(--radius-sm);
   padding: var(--space-1) var(--space-2);
   cursor: pointer;
+}
+
+.secondaryButton {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.secondaryButton:hover {
+  background: var(--color-bg);
 }
 
 .checkboxRow {

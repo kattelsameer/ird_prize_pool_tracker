@@ -9,6 +9,8 @@ import { DataSourceBadge } from "../components/DataSourceBadge";
 import { WinnerCard } from "../components/WinnerCard";
 import { CouponForm } from "../components/CouponForm";
 import { MatchStatusTag, type MatchStatus } from "../components/MatchStatusTag";
+import { DrawPeriodBadge } from "../components/DrawPeriodBadge";
+import { ClaimInstructions } from "../components/ClaimInstructions";
 import { drawPeriodPresentation } from "../lib/drawPeriod";
 import type { CouponInput } from "../api/types";
 import styles from "./CouponDetail.module.css";
@@ -102,9 +104,8 @@ export function CouponDetail() {
             No matching prize-pool result was found for this coupon yet
           </DataSourceBadge>
           {period ? (
-            <p>
-              <strong>Draw period:</strong> {drawPeriodPresentation(period).label}.{" "}
-              {drawPeriodPresentation(period).detail}
+            <p className={styles.periodDetail}>
+              <DrawPeriodBadge status={period} /> {drawPeriodPresentation(period).detail}
             </p>
           ) : (
             <p>
@@ -115,17 +116,17 @@ export function CouponDetail() {
         </div>
       )}
 
-      <div className={styles.nextSteps}>
-        <h2>How to claim if you win</h2>
-        <ol>
-          <li>Visit an Inland Revenue Office in person — online claims are not accepted.</li>
-          <li>Bring your original physical bill (photocopies are not accepted).</li>
-          <li>Bring a government photo ID (citizenship, national ID, passport, or driving license).</li>
-          <li>Bring your PAN (Personal Account Number) — mandatory.</li>
-          <li>Bring your bank account details for the prize deposit.</li>
-          <li>Claim within 15 calendar days of the announcement, or the prize is permanently forfeited.</li>
-        </ol>
-      </div>
+      {match ? (
+        <div className={styles.nextSteps}>
+          <h2>How to claim your prize</h2>
+          <ClaimInstructions />
+        </div>
+      ) : (
+        <details className={styles.disclosure}>
+          <summary>How do I claim if this coupon wins?</summary>
+          <ClaimInstructions />
+        </details>
+      )}
 
       <button type="button" onClick={() => navigate(-1)}>
         Back

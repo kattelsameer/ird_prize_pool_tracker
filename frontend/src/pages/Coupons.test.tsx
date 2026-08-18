@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Coupons } from "./Coupons";
 import { renderWithProviders } from "../test/testUtils";
@@ -9,22 +9,24 @@ describe("Coupons page", () => {
     const user = userEvent.setup();
     renderWithProviders(<Coupons />);
 
-    expect(await screen.findByText("007315254493")).toBeInTheDocument();
-    expect(screen.getByText("000000000001")).toBeInTheDocument();
+    const table = within(await screen.findByRole("table"));
+    expect(table.getByText("007315254493")).toBeInTheDocument();
+    expect(table.getByText("000000000001")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/search by code/i), "007315254493");
 
     await waitFor(() => {
-      expect(screen.queryByText("000000000001")).not.toBeInTheDocument();
+      expect(table.queryByText("000000000001")).not.toBeInTheDocument();
     });
-    expect(screen.getByText("007315254493")).toBeInTheDocument();
+    expect(table.getByText("007315254493")).toBeInTheDocument();
   });
 
   it("opens the add-coupon modal and adds a new coupon that then appears in the list", async () => {
     const user = userEvent.setup();
     renderWithProviders(<Coupons />);
 
-    await screen.findByText("007315254493");
+    const table = within(await screen.findByRole("table"));
+    table.getByText("007315254493");
 
     await user.click(screen.getByRole("button", { name: /add coupon/i }));
     const dialog = await screen.findByRole("dialog", { name: /add a coupon/i });
@@ -34,6 +36,6 @@ describe("Coupons page", () => {
     await user.click(screen.getByRole("button", { name: /save coupon/i }));
 
     await waitFor(() => expect(dialog).not.toBeInTheDocument());
-    expect(await screen.findByText("123456789012")).toBeInTheDocument();
+    expect(await screen.findAllByText("123456789012")).not.toHaveLength(0);
   });
 });
