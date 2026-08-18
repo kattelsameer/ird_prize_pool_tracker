@@ -1,10 +1,12 @@
 .badge {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
+  align-self: flex-start;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
+  background: transparent;
   font-size: var(--font-size-xs);
   font-weight: 600;
   line-height: 1.4;
@@ -19,19 +21,16 @@
 }
 
 .government {
-  background: var(--color-gov-bg);
   border-color: var(--color-gov-border);
-  color: var(--color-gov-border);
+  color: var(--color-gov-text);
 }
 
 .user {
-  background: var(--color-user-bg);
   border-color: var(--color-user-border);
-  color: var(--color-user-border);
+  color: var(--color-user-text);
 }
 
 .app {
-  background: var(--color-app-bg);
   border-color: var(--color-app-border);
-  color: var(--color-app-border);
+  color: var(--color-app-text);
 }
