@@ -14,14 +14,9 @@ export function useCurrentUser() {
 }
 
 export function useRegister() {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: { email: string; password: string }) =>
       api.post<AuthResponse>("/api/auth/register", input),
-    onSuccess: (data) => {
-      setStoredToken(data.access_token);
-      queryClient.setQueryData(ME_KEY, data.user);
-    },
   });
 }
 

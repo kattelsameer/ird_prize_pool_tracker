@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useLogin } from "../api/auth";
 import { ErrorState } from "../components/ErrorState";
 import styles from "./AuthForm.module.css";
@@ -9,7 +9,11 @@ export function Login() {
   const [password, setPassword] = useState("");
   const login = useLogin();
   const navigate = useNavigate();
+  const location = useLocation();
   const formId = useId();
+  const justRegistered = Boolean(
+    (location.state as { justRegistered?: boolean } | null)?.justRegistered
+  );
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -26,6 +30,12 @@ export function Login() {
           <span aria-hidden="true">🎟</span> CouponSathi
         </h1>
         <p className={styles.subtitle}>Log in to track your coupons</p>
+
+        {justRegistered && (
+          <p className={styles.success} role="status">
+            Account created. Log in to continue.
+          </p>
+        )}
 
         <div className={styles.field}>
           <label htmlFor={`${formId}-email`}>Email</label>
