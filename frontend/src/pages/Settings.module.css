@@ -86,3 +86,9 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+.syncCounts {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

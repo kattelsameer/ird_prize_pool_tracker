@@ -94,6 +94,12 @@ export interface MatchResult {
   claim_status: ClaimStatus;
   claim_deadline: string;
   claim_open: boolean;
+  // Fixed published tiers looked up by category (CLAUDE.md §10a) -- null if IRD
+  // ever publishes a category outside that table, never a guessed amount.
+  prize_amount: number | null;
+  prize_amount_net: number | null;
+  eligible_from: string | null;
+  eligible_to: string | null;
   message: string;
 }
 

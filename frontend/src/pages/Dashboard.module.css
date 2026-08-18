@@ -84,6 +84,12 @@
   cursor: not-allowed;
 }
 
+.syncCounts {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
 .updatesList {
   display: flex;
   flex-direction: column;

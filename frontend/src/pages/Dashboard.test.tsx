@@ -17,6 +17,11 @@ describe("Dashboard page", () => {
     });
   });
 
+  it("shows the last sync's record counts alongside its status", async () => {
+    renderWithProviders(<Dashboard />);
+    expect(await screen.findByText(/16 received, 2 new, 0 updated/i)).toBeInTheDocument();
+  });
+
   it("shows a new-match notice banner sourced from the paginated notifications response", async () => {
     // Regression test: GET /api/notifications returns a Page[NotificationRead]
     // ({items, total, limit, offset}), not a bare array. Dashboard must read
