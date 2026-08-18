@@ -97,6 +97,24 @@ export interface MatchResult {
   message: string;
 }
 
+// Mirrors the backend's DrawPeriodStatusRead schema exactly
+// (app/schemas/draw_period.py) -- application-derived information (CLAUDE.md
+// §6), independent of whether the coupon actually matched a winner. See
+// GET /api/matches/draw-periods.
+export type DrawPeriodState = "DRAWN" | "PENDING" | "UNKNOWN";
+
+export interface DrawPeriodStatus {
+  coupon_id: string;
+  state: DrawPeriodState;
+  eligible_from: string | null;
+  eligible_to: string | null;
+  draw_id: string | null;
+  draw_title_en: string | null;
+  published_at: string | null;
+  estimated_publish_date: string | null;
+  is_estimated: boolean;
+}
+
 export type NotificationType =
   | "NEW_MATCH"
   | "CLAIM_EXPIRING"

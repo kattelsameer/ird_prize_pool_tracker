@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useCoupon, useUpdateCoupon } from "../api/coupons";
-import { useMatches } from "../api/matches";
+import { useDrawPeriods, useMatches } from "../api/matches";
 import { useSettings } from "../api/settings";
 import { LoadingState } from "../components/LoadingState";
 import { ErrorState } from "../components/ErrorState";
@@ -9,6 +9,7 @@ import { DataSourceBadge } from "../components/DataSourceBadge";
 import { WinnerCard } from "../components/WinnerCard";
 import { CouponForm } from "../components/CouponForm";
 import { MatchStatusTag, type MatchStatus } from "../components/MatchStatusTag";
+import { drawPeriodPresentation } from "../lib/drawPeriod";
 import type { CouponInput } from "../api/types";
 import styles from "./CouponDetail.module.css";
 
@@ -19,6 +20,7 @@ export function CouponDetail() {
 
   const coupon = useCoupon(id);
   const matches = useMatches();
+  const drawPeriods = useDrawPeriods();
   const settings = useSettings();
   const updateCoupon = useUpdateCoupon(id ?? "");
 
@@ -27,7 +29,12 @@ export function CouponDetail() {
   if (!coupon.data) return <ErrorState error={null} fallbackMessage="Coupon not found." />;
 
   const match = (matches.data ?? []).find((m) => m.coupon_id === coupon.data.id);
-  const status: MatchStatus = match ? match.claim_status : "NO_MATCH";
+  const period = (drawPeriods.data ?? []).find((p) => p.coupon_id === coupon.data.id);
+  const status: MatchStatus = match
+    ? match.claim_status
+    : period && period.state !== "DRAWN"
+      ? "NOT_CHECKED"
+      : "NO_MATCH";
 
   function handleUpdate(input: CouponInput) {
     updateCoupon.mutate(input, { onSuccess: () => setIsEditing(false) });
@@ -94,10 +101,17 @@ export function CouponDetail() {
           <DataSourceBadge source="app">
             No matching prize-pool result was found for this coupon yet
           </DataSourceBadge>
-          <p>
-            New draws are announced every 1st and 16th of the Nepali calendar month. We'll notify
-            you the moment this coupon matches a published result.
-          </p>
+          {period ? (
+            <p>
+              <strong>Draw period:</strong> {drawPeriodPresentation(period).label}.{" "}
+              {drawPeriodPresentation(period).detail}
+            </p>
+          ) : (
+            <p>
+              New draws are announced every 1st and 16th of the Nepali calendar month. We'll notify
+              you the moment this coupon matches a published result.
+            </p>
+          )}
         </div>
       )}
 
