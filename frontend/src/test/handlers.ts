@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import {
   fixtureCoupons,
+  fixtureDrawPeriods,
   fixtureMatches,
   fixtureNetworks,
   fixtureNotifications,
@@ -136,6 +137,7 @@ export const handlers = [
   }),
 
   http.get(`${BASE}/api/matches`, () => HttpResponse.json(fixtureMatches)),
+  http.get(`${BASE}/api/matches/draw-periods`, () => HttpResponse.json(fixtureDrawPeriods)),
   http.get(`${BASE}/api/wins`, () => HttpResponse.json(fixtureMatches)),
   http.get(`${BASE}/api/claims`, () => HttpResponse.json(fixtureMatches)),
 

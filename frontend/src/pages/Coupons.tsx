@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useCoupons, useCreateCoupon, useDeleteCoupon } from "../api/coupons";
-import { useMatches } from "../api/matches";
+import { useDrawPeriods, useMatches } from "../api/matches";
 import { useSettings } from "../api/settings";
 import { CouponList } from "../components/CouponList";
 import { CouponForm } from "../components/CouponForm";
@@ -24,6 +24,7 @@ export function Coupons() {
   const filters = { search, fiscal_year: fiscalYear, network, page, page_size: 20 };
   const coupons = useCoupons(filters);
   const matches = useMatches();
+  const drawPeriods = useDrawPeriods();
   const settings = useSettings();
   const createCoupon = useCreateCoupon();
   const deleteCoupon = useDeleteCoupon();
@@ -113,7 +114,12 @@ export function Coupons() {
       {coupons.isError && <ErrorState error={coupons.error} onRetry={() => coupons.refetch()} />}
       {coupons.isSuccess && (
         <>
-          <CouponList coupons={coupons.data.items} matches={matches.data ?? []} onDelete={setPendingDelete} />
+          <CouponList
+            coupons={coupons.data.items}
+            matches={matches.data ?? []}
+            drawPeriods={drawPeriods.data ?? []}
+            onDelete={setPendingDelete}
+          />
           {totalPages > 1 && (
             <nav className={styles.pagination} aria-label="Coupon list pagination">
               <button

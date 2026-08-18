@@ -100,6 +100,82 @@ def fiscal_year_info_for_bs_year(bs_year: int) -> FiscalYearInfo:
     )
 
 
+@dataclass(frozen=True)
+class HalfMonthPeriod:
+    """The fortnightly draw window (BS 1st-15th or 16th-to-month-end) that
+    contains a given Gregorian date, plus the Gregorian date results for that
+    window are expected to be published (the following BS 1st or 16th)."""
+
+    period_start: date
+    period_end: date
+    expected_publish_date: date
+    is_estimated: bool
+
+
+def _days_in_bs_month(bs_year: int, bs_month: int) -> int:  # pragma: no cover - needs nepali_datetime
+    """BS months run 29-32 days depending on the year; probe downward from the
+    theoretical max rather than hardcoding a table, since `nepali_datetime`
+    itself raises for an out-of-range day."""
+    for day in (32, 31, 30, 29):
+        try:
+            _nepali_datetime.date(bs_year, bs_month, day)
+            return day
+        except ValueError:
+            continue
+    return 29  # pragma: no cover - BS months always have at least 29 days
+
+
+def bs_half_month_period_for_date(gregorian_date: date) -> HalfMonthPeriod:
+    """Determine the fortnightly draw window containing `gregorian_date`.
+
+    Prize-pool draws happen every BS 1st and 16th, each covering the
+    immediately preceding half-month (CLAUDE.md §10a). If `nepali_datetime` is
+    importable this is computed exactly; otherwise it falls back to a fixed
+    30-Gregorian-day-per-BS-month approximation anchored at the fiscal year
+    start, flagged `is_estimated=True` (mirrors the fallback strategy already
+    used by `fiscal_year_for_gregorian_date` above).
+    """
+    if _HAS_NEPALI_DATETIME:  # pragma: no cover - not exercised in this sandbox
+        bs_date = _nepali_datetime.date.from_datetime_date(gregorian_date)
+        if bs_date.day <= 15:
+            start = _nepali_datetime.date(bs_date.year, bs_date.month, 1)
+            end = _nepali_datetime.date(bs_date.year, bs_date.month, 15)
+            publish = _nepali_datetime.date(bs_date.year, bs_date.month, 16)
+        else:
+            start = _nepali_datetime.date(bs_date.year, bs_date.month, 16)
+            last_day = _days_in_bs_month(bs_date.year, bs_date.month)
+            end = _nepali_datetime.date(bs_date.year, bs_date.month, last_day)
+            if bs_date.month == 12:
+                publish = _nepali_datetime.date(bs_date.year + 1, 1, 1)
+            else:
+                publish = _nepali_datetime.date(bs_date.year, bs_date.month + 1, 1)
+        return HalfMonthPeriod(
+            period_start=start.to_datetime_date(),
+            period_end=end.to_datetime_date(),
+            expected_publish_date=publish.to_datetime_date(),
+            is_estimated=False,
+        )
+
+    # Fallback: approximate every BS month as exactly 30 Gregorian days,
+    # anchored at the fiscal year's confirmed/estimated Shrawan-1 start. Real
+    # BS months run 29-32 days, so this can be off by a day or two -- always
+    # flagged `is_estimated=True` and never used to gate a match, only to
+    # advise the user when no synced draw yet covers their transaction date.
+    fy_info = fiscal_year_for_gregorian_date(gregorian_date)
+    days_since_start = (gregorian_date - fy_info.fiscal_year_start_gregorian).days
+    month_index, day_in_month = divmod(days_since_start, 30)
+    month_start = fy_info.fiscal_year_start_gregorian + timedelta(days=month_index * 30)
+    if day_in_month < 15:
+        start = month_start
+        end = month_start + timedelta(days=14)
+        publish = month_start + timedelta(days=15)
+    else:
+        start = month_start + timedelta(days=15)
+        end = month_start + timedelta(days=29)
+        publish = month_start + timedelta(days=30)
+    return HalfMonthPeriod(period_start=start, period_end=end, expected_publish_date=publish, is_estimated=True)
+
+
 def fiscal_year_for_gregorian_date(gregorian_date: date) -> FiscalYearInfo:
     """Determine the Nepal fiscal year a Gregorian date falls into.
 
