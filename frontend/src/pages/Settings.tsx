@@ -7,6 +7,7 @@ import { useDeleteAccount, useExportAccountData, useProfile, useUpdateProfile } 
 import { LoadingState } from "../components/LoadingState";
 import { ErrorState } from "../components/ErrorState";
 import { Modal } from "../components/Modal";
+import { formatSyncRunCounts } from "../lib/syncStatus";
 import type { SettingsUpdate } from "../api/types";
 import styles from "./Settings.module.css";
 
@@ -284,15 +285,20 @@ export function Settings() {
       <section className={styles.section} aria-label="Synchronization">
         <h2>Synchronization</h2>
         {syncStatus.isSuccess && (
-          <p>
-            {syncStatus.data.is_running
-              ? "A sync is currently running."
-              : syncStatus.data.latest_run
-              ? `Last sync: ${syncStatus.data.latest_run.status} at ${new Date(
-                  syncStatus.data.latest_run.finished_at ?? syncStatus.data.latest_run.started_at
-                ).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}`
-              : "Never synced yet."}
-          </p>
+          <>
+            <p>
+              {syncStatus.data.is_running
+                ? "A sync is currently running."
+                : syncStatus.data.latest_run
+                ? `Last sync: ${syncStatus.data.latest_run.status} at ${new Date(
+                    syncStatus.data.latest_run.finished_at ?? syncStatus.data.latest_run.started_at
+                  ).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}`
+                : "Never synced yet."}
+            </p>
+            {!syncStatus.data.is_running && syncStatus.data.latest_run && (
+              <p className={styles.syncCounts}>{formatSyncRunCounts(syncStatus.data.latest_run)}</p>
+            )}
+          </>
         )}
         <button
           type="button"

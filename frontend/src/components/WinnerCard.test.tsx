@@ -17,6 +17,20 @@ describe("WinnerCard", () => {
     expect(screen.getByText(/original physical bill/i)).toBeInTheDocument();
   });
 
+  it("shows the prize amount, net-after-tax amount, and winner rank", () => {
+    renderWithProviders(<WinnerCard match={fixtureMatches[0]} />);
+
+    expect(screen.getByText(/Rs 1,000,000/)).toBeInTheDocument();
+    expect(screen.getByText(/Rs 750,000 after 25% tax/)).toBeInTheDocument();
+    expect(screen.getByText(/Rank 1/)).toBeInTheDocument();
+  });
+
+  it("omits the amount line entirely when the category has no known prize tier", () => {
+    const unknownAmountMatch = { ...fixtureMatches[0], prize_amount: null, prize_amount_net: null };
+    renderWithProviders(<WinnerCard match={unknownAmountMatch} />);
+    expect(screen.queryByText(/^Rs /)).not.toBeInTheDocument();
+  });
+
   it("shows a fiscal-year-unconfirmed notice when applicable", () => {
     const unconfirmedMatch = { ...fixtureMatches[0], fiscal_year_unconfirmed: true };
     renderWithProviders(<WinnerCard match={unconfirmedMatch} />);

@@ -12,6 +12,7 @@ import { LoadingState } from "../components/LoadingState";
 import { ErrorState } from "../components/ErrorState";
 import { DataSourceBadge } from "../components/DataSourceBadge";
 import { recentDrawLabel, summarizeRecentDraws } from "../lib/recentDraws";
+import { formatSyncRunCounts } from "../lib/syncStatus";
 import styles from "./Dashboard.module.css";
 
 export function Dashboard() {
@@ -154,6 +155,9 @@ export function Dashboard() {
                     })`
                   : "Never synced yet"}
               </DataSourceBadge>
+              {!syncStatus.data.is_running && syncStatus.data.latest_run && (
+                <p className={styles.syncCounts}>{formatSyncRunCounts(syncStatus.data.latest_run)}</p>
+              )}
             </div>
           )}
           <button

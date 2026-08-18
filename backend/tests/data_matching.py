@@ -23,6 +23,8 @@ DEFAULT_WINNER_KWARGS = dict(
     category_title_en="Daily Prize",
     draw_type="GENERAL",
     draw_title_en="Daily Winner Consumer Selection for the period of Shrawan 1 to 15",
+    prize_amount=133_334,
+    prize_amount_net=100_000,
 )
 
 # --- Coupons -----------------------------------------------------------
@@ -110,7 +112,12 @@ SCENARIOS = [
         coupon_key="exact_winner",
         winner_keys=["primary"],
         expect_match_count=1,
-        checks={"fiscal_year_unconfirmed": False, "eligible_period_warning": False},
+        checks={
+            "fiscal_year_unconfirmed": False,
+            "eligible_period_warning": False,
+            "prize_amount": 133_334,
+            "prize_amount_net": 100_000,
+        },
     ),
     dict(
         name="non_winning_coupon_has_no_match",

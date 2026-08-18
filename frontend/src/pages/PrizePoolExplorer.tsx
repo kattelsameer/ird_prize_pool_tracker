@@ -162,6 +162,7 @@ export function PrizePoolExplorer() {
                   </button>
                 </th>
                 <th scope="col">Category</th>
+                <th scope="col">Prize amount</th>
                 <th scope="col">Fiscal year</th>
                 <th scope="col">
                   <button
@@ -183,6 +184,7 @@ export function PrizePoolExplorer() {
                   <tr key={item.id}>
                     <td>{item.normalized_coupon_code}</td>
                     <td>{item.category}</td>
+                    <td>{item.prize_amount !== null ? `Rs ${item.prize_amount.toLocaleString("en-US")}` : "—"}</td>
                     <td>{item.fiscal_year}</td>
                     <td>{new Date(item.published_at).toLocaleDateString("en-US", { dateStyle: "medium" })}</td>
                     <td>
