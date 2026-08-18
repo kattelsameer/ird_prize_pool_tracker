@@ -1,23 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Route, Routes } from "react-router-dom";
 import { Register } from "./Register";
+import { Login } from "./Login";
 import { renderWithProviders } from "../test/testUtils";
 import { getStoredToken } from "../api/client";
 import { fixtureUser } from "../test/fixtures";
 
 describe("Register page", () => {
-  it("creates an account and stores the access token", async () => {
+  it("creates an account, does not log in, and redirects to the login page", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<Register />, { route: "/register" });
+    renderWithProviders(
+      <Routes>
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+      </Routes>,
+      { route: "/register" }
+    );
 
     await user.type(screen.getByLabelText(/email/i), "brand-new-user@example.com");
     await user.type(screen.getByLabelText(/password/i), "a-long-enough-password");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
-    await waitFor(() => {
-      expect(getStoredToken()).toBeTruthy();
-    });
+    expect(await screen.findByText(/account created/i)).toBeInTheDocument();
+    expect(getStoredToken()).toBeFalsy();
   });
 
   it("shows a validation error for a too-short password without submitting", async () => {

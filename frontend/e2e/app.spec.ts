@@ -74,12 +74,19 @@ test.describe("Consumer journey", () => {
     await expect(page.getByText("555566667777")).toBeVisible();
   });
 
-  test("registers a new account, logs out, then logs back in", async ({ page }) => {
-    // Register.
+  test("registers a new account, logs in, logs out, then logs back in", async ({ page }) => {
+    // Register -> redirected to login, not straight into the dashboard.
     await page.goto("/register");
     await page.getByLabel(/email/i).fill("new-e2e-user@example.com");
     await page.getByLabel(/password/i).fill("a-long-enough-password");
     await page.getByRole("button", { name: /create account/i }).click();
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByText(/account created/i)).toBeVisible();
+
+    // Log in with the newly created account.
+    await page.getByLabel(/email/i).fill("new-e2e-user@example.com");
+    await page.getByLabel(/password/i).fill("a-long-enough-password");
+    await page.getByRole("button", { name: /^log in$/i }).click();
     await expect(page.getByRole("heading", { name: /needs your attention/i })).toBeVisible();
 
     // Log out -> redirected to login, protected routes no longer reachable.
