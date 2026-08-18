@@ -11,6 +11,33 @@ data model and API may still change before a stable `1.0.0`.
 
 Nothing yet — changes accumulate here until the next release is cut.
 
+## [0.3.0] - 2026-08-19
+
+### Added
+- Prize amount (gross + net after 25% tax) and winner rank now shown on a
+  matched coupon, and as a column in the Prize Pool Explorer.
+- Sync record counts (received/new/updated) shown alongside sync status on
+  the Dashboard and Settings.
+- Icon+color status pill for draw-period status (previously plain text).
+
+### Changed
+- Full visual consistency and decluttering pass: unified page-width tiers
+  and mobile breakpoint, consistent button/color semantics (destructive
+  actions only use danger-red), a shared status-pill component, and a
+  refreshed accent color.
+- Coupon table rows are single-line instead of wrapping across 2-3 lines;
+  mobile coupon list is a real compact card instead of a stacked
+  label/value dump.
+- Dashboard's "Recent prize-pool updates" groups winners by draw instead of
+  listing near-duplicate lines per winner.
+- "How to claim" instructions now live in one shared component instead of
+  three independently-drifting copies, and collapse behind a disclosure on
+  a coupon with no match yet.
+
+### Fixed
+- Removed dead CSS, an inline style, and a `DataSourceBadge` color that made
+  neutral/negative app-calculated messages look like good news.
+
 ## [0.2.0] - 2026-08-18
 
 ### Added
