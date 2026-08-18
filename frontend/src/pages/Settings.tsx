@@ -197,7 +197,7 @@ export function Settings() {
             />
             <button
               type="button"
-              className={styles.removeButton}
+              className={styles.secondaryButton}
               onClick={() => updateNetwork.mutate({ id: network.id, active: !network.active })}
               aria-label={`${network.active ? "Deactivate" : "Reactivate"} ${network.name}`}
             >
@@ -296,6 +296,7 @@ export function Settings() {
         )}
         <button
           type="button"
+          className={styles.saveButton}
           onClick={() => triggerSync.mutate()}
           disabled={triggerSync.isPending || syncStatus.data?.is_running}
         >
