@@ -1,4 +1,5 @@
 import { DataSourceBadge } from "../components/DataSourceBadge";
+import { ClaimInstructions } from "../components/ClaimInstructions";
 import styles from "./Information.module.css";
 
 export function Information() {
@@ -87,17 +88,10 @@ export function Information() {
 
       <section className={styles.section}>
         <h2>How to claim a prize</h2>
-        <ol>
-          <li>You have exactly 15 calendar days from the announcement date to claim.</li>
-          <li>Claims are in-person only, at a designated Inland Revenue Office — there is no online claim option.</li>
-          <li>Bring your original physical bill (photocopies are not accepted).</li>
-          <li>Bring a government photo ID (citizenship, national ID, passport, or driving license).</li>
-          <li>Bring your PAN (Personal Account Number) — mandatory.</li>
-          <li>Bring your bank account details for the prize deposit.</li>
-        </ol>
+        <ClaimInstructions />
         <p>
-          If you miss the 15-day deadline, the prize is permanently forfeited to the Prime
-          Minister's Disaster Relief Fund — it cannot be reclaimed.{" "}
+          Miss the 15-day deadline and the prize is permanently forfeited to the Prime Minister's
+          Disaster Relief Fund — it cannot be reclaimed.{" "}
           <span className={styles.sourceNote}>(Program materials.)</span>
         </p>
       </section>
