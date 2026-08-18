@@ -29,6 +29,10 @@ def _to_read(match) -> MatchRead:
         claim_status=match.claim_status,
         claim_deadline=match.claim_deadline,
         claim_open=match.claim_open,
+        prize_amount=match.prize_amount,
+        prize_amount_net=match.prize_amount_net,
+        eligible_from=match.eligible_from,
+        eligible_to=match.eligible_to,
         message=build_match_message(match),
     )
 

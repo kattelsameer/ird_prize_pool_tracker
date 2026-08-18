@@ -42,6 +42,8 @@ class WinnerInput:
     category_title_en: str
     draw_type: str
     draw_title_en: str
+    prize_amount: int | None
+    prize_amount_net: int | None
 
 
 @dataclass(frozen=True)
@@ -59,6 +61,10 @@ class MatchResult:
     draw_title_en: str
     claim_deadline: datetime
     claim_open: bool
+    prize_amount: int | None
+    prize_amount_net: int | None
+    eligible_from: date | None
+    eligible_to: date | None
 
 
 def _transaction_outside_eligible_period(
@@ -144,6 +150,10 @@ def match_coupons(
                     draw_title_en=winner.draw_title_en,
                     claim_deadline=winner.claim_deadline,
                     claim_open=winner.claim_open,
+                    prize_amount=winner.prize_amount,
+                    prize_amount_net=winner.prize_amount_net,
+                    eligible_from=winner.eligible_from,
+                    eligible_to=winner.eligible_to,
                 )
             )
     return results

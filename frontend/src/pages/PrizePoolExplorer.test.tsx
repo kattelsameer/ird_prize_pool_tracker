@@ -10,6 +10,7 @@ describe("PrizePoolExplorer page", () => {
     renderWithProviders(<PrizePoolExplorer />);
     expect(screen.getAllByText(/loading/i).length).toBeGreaterThan(0);
     expect(await screen.findByText("007315254493")).toBeInTheDocument();
+    expect(screen.getByText("Rs 1,000,000")).toBeInTheDocument();
   });
 
   it("shows an empty state when no records match the filters", async () => {

@@ -13,12 +13,26 @@ export interface WinnerCardProps {
  * (government / user / app-derived) and never claims a guaranteed prize — only that the
  * coupon matches published data (§65).
  */
+function formatRupees(amount: number): string {
+  return `Rs ${amount.toLocaleString("en-US")}`;
+}
+
 export function WinnerCard({ match }: WinnerCardProps) {
   return (
     <article className={styles.card} aria-labelledby={`winner-${match.coupon_id}-heading`}>
       <h3 id={`winner-${match.coupon_id}-heading`} className={styles.heading}>
         Your coupon matches a published prize-pool result
       </h3>
+
+      {match.prize_amount !== null && (
+        <p className={styles.amount}>
+          {formatRupees(match.prize_amount)}
+          {match.prize_amount_net !== null && (
+            <span className={styles.amountNet}> ({formatRupees(match.prize_amount_net)} after 25% tax)</span>
+          )}
+          <span className={styles.rank}> · Rank {match.winner_rank}</span>
+        </p>
+      )}
 
       <div className={styles.badges}>
         <DataSourceBadge source="government">

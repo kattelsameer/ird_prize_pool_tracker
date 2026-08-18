@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.timeutil import now_kathmandu
 from app.domain.matching import CouponInput, MatchResult, WinnerInput, match_coupons
+from app.domain.prize_tiers import prize_amounts_for_category
 from app.models.coupon import Coupon
 from app.models.prize_pool import PrizePoolWinner
 from app.repositories.coupon_repo import list_all_coupons_for_matching
@@ -24,6 +25,7 @@ def _coupon_to_input(coupon: Coupon) -> CouponInput:
 
 
 def _winner_to_input(winner: PrizePoolWinner) -> WinnerInput:
+    prize_amount, prize_amount_net = prize_amounts_for_category(winner.category_title_en)
     return WinnerInput(
         draw_id=winner.draw_id,
         prize_coupon_number=winner.prize_coupon_number,
@@ -37,6 +39,8 @@ def _winner_to_input(winner: PrizePoolWinner) -> WinnerInput:
         category_title_en=winner.category_title_en or "",
         draw_type=winner.draw_type or "",
         draw_title_en=winner.draw_title_en or "",
+        prize_amount=prize_amount,
+        prize_amount_net=prize_amount_net,
     )
 
 

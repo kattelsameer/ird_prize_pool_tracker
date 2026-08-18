@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import type { Coupon, DrawPeriodStatus, MatchResult } from "../api/types";
 import { MatchStatusTag, type MatchStatus } from "./MatchStatusTag";
+import { DrawPeriodBadge } from "./DrawPeriodBadge";
 import { EmptyState } from "./EmptyState";
-import { drawPeriodPresentation } from "../lib/drawPeriod";
 import styles from "./CouponList.module.css";
 
 export interface CouponListProps {
@@ -39,43 +39,74 @@ export function CouponList({ coupons, matches, drawPeriods = [], onDelete }: Cou
   }
 
   return (
-    <table className={styles.table}>
-      <caption className="visually-hidden">Your coupons</caption>
-      <thead>
-        <tr>
-          <th scope="col">Coupon code</th>
-          <th scope="col">Transaction date</th>
-          <th scope="col">Fiscal year</th>
-          <th scope="col">Network</th>
-          <th scope="col">Draw period</th>
-          <th scope="col">Match status</th>
-          <th scope="col">
-            <span className="visually-hidden">Actions</span>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
+    <>
+      <div className={styles.desktopOnly}>
+        <table className={styles.table}>
+          <caption className="visually-hidden">Your coupons</caption>
+          <thead>
+            <tr>
+              <th scope="col">Coupon code</th>
+              <th scope="col">Transaction date</th>
+              <th scope="col">Fiscal year</th>
+              <th scope="col">Network</th>
+              <th scope="col">Draw period</th>
+              <th scope="col">Match status</th>
+              <th scope="col">
+                <span className="visually-hidden">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {coupons.map((coupon) => {
+              const period = drawPeriods.find((p) => p.coupon_id === coupon.id);
+              return (
+                <tr key={coupon.id}>
+                  <td data-label="Coupon code">
+                    <Link to={`/coupons/${coupon.id}`}>{coupon.coupon_code}</Link>
+                  </td>
+                  <td data-label="Transaction date">{coupon.transaction_date}</td>
+                  <td data-label="Fiscal year">{coupon.fiscal_year ?? "—"}</td>
+                  <td data-label="Network">{coupon.network ?? "—"}</td>
+                  <td data-label="Draw period">
+                    <DrawPeriodBadge status={period} />
+                  </td>
+                  <td data-label="Match status">
+                    <MatchStatusTag status={deriveMatchStatus(coupon, matches, drawPeriods)} />
+                  </td>
+                  <td data-label="Actions" className={styles.actionsCell}>
+                    <button
+                      type="button"
+                      className={styles.deleteButton}
+                      onClick={() => onDelete(coupon)}
+                      aria-label={`Delete coupon ${coupon.coupon_code}`}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <ul className={`${styles.cardList} ${styles.mobileOnly}`}>
         {coupons.map((coupon) => {
           const period = drawPeriods.find((p) => p.coupon_id === coupon.id);
-          const periodPresentation = drawPeriodPresentation(period);
           return (
-            <tr key={coupon.id}>
-              <td data-label="Coupon code">
-                <Link to={`/coupons/${coupon.id}`}>{coupon.coupon_code}</Link>
-              </td>
-              <td data-label="Transaction date">{coupon.transaction_date}</td>
-              <td data-label="Fiscal year">{coupon.fiscal_year ?? "—"}</td>
-              <td data-label="Network">{coupon.network ?? "—"}</td>
-              <td data-label="Draw period">
-                <span title={periodPresentation.detail}>{periodPresentation.label}</span>
-              </td>
-              <td data-label="Match status">
-                <MatchStatusTag status={deriveMatchStatus(coupon, matches, drawPeriods)} />
-              </td>
-              <td data-label="Actions" className={styles.actionsCell}>
-                <Link to={`/coupons/${coupon.id}`} className={styles.actionLink}>
-                  View
+            <li key={coupon.id} className={styles.card}>
+              <div className={styles.cardTopRow}>
+                <Link to={`/coupons/${coupon.id}`} className={styles.cardCode}>
+                  {coupon.coupon_code}
                 </Link>
+                <MatchStatusTag status={deriveMatchStatus(coupon, matches, drawPeriods)} />
+              </div>
+              <p className={styles.cardMeta}>
+                {coupon.transaction_date}
+                {coupon.network ? ` · ${coupon.network}` : ""}
+              </p>
+              <div className={styles.cardBottomRow}>
+                <DrawPeriodBadge status={period} />
                 <button
                   type="button"
                   className={styles.deleteButton}
@@ -84,11 +115,11 @@ export function CouponList({ coupons, matches, drawPeriods = [], onDelete }: Cou
                 >
                   Delete
                 </button>
-              </td>
-            </tr>
+              </div>
+            </li>
           );
         })}
-      </tbody>
-    </table>
+      </ul>
+    </>
   );
 }

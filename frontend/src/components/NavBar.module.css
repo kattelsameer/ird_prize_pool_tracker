@@ -98,7 +98,8 @@
   background: var(--color-bg);
 }
 
-@media (max-width: 640px) {
+/* Kept in sync with CouponList's mobile breakpoint -- see the note in theme.css. */
+@media (max-width: 700px) {
   .topRow {
     padding: var(--space-3) var(--space-4);
   }

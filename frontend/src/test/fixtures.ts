@@ -136,6 +136,10 @@ export const fixtureMatches: MatchResult[] = [
     claim_status: "CLAIM_ACTIVE",
     claim_deadline: fixturePrizePools[0].claim_deadline,
     claim_open: fixturePrizePools[0].claim_open,
+    prize_amount: fixturePrizePools[0].prize_amount,
+    prize_amount_net: fixturePrizePools[0].prize_amount_net,
+    eligible_from: fixturePrizePools[0].eligible_from,
+    eligible_to: fixturePrizePools[0].eligible_to,
     message:
       "Your coupon matches a result published by IRD for the \"Bumper Winner Consumer Selection for the period of Shrawan 1 to 15\" draw. To claim, you must provide the original physical bill and PAN in person at an Inland Revenue Office before the claim deadline.",
   },
@@ -153,6 +157,10 @@ export const fixtureMatches: MatchResult[] = [
     claim_status: "CLAIM_EXPIRING",
     claim_deadline: fixturePrizePools[1].claim_deadline,
     claim_open: fixturePrizePools[1].claim_open,
+    prize_amount: fixturePrizePools[1].prize_amount,
+    prize_amount_net: fixturePrizePools[1].prize_amount_net,
+    eligible_from: fixturePrizePools[1].eligible_from,
+    eligible_to: fixturePrizePools[1].eligible_to,
     message:
       "Your coupon matches a result published by IRD for the \"Daily Winner Consumer Selection for the period of Shrawan 16 to 31\" draw. To claim, you must provide the original physical bill and PAN in person at an Inland Revenue Office before the claim deadline.",
   },

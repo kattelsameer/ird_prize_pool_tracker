@@ -29,14 +29,17 @@ test.describe("Consumer journey", () => {
     await dialog.getByLabel(/fiscal year/i).selectOption("2083-84");
     await dialog.getByRole("button", { name: /save coupon/i }).click();
 
-    // 3. Verify it appears in the list.
+    // 3. Verify it appears in the list. (The coupon table is rendered twice in the DOM --
+    // once as the desktop table, once as a CSS-toggled mobile card list -- so scope to the
+    // table, which is what's actually visible at this test's desktop viewport.)
+    const couponTable = page.getByRole("table");
     await expect(dialog).toBeHidden();
-    await expect(page.getByText("555566667777")).toBeVisible();
+    await expect(couponTable.getByText("555566667777")).toBeVisible();
 
     // 4. Search/filter the coupon list.
     await page.getByLabel(/search by code/i).fill("555566667777");
-    await expect(page.getByText("007315254493")).toBeHidden();
-    await expect(page.getByText("555566667777")).toBeVisible();
+    await expect(couponTable.getByText("007315254493")).toBeHidden();
+    await expect(couponTable.getByText("555566667777")).toBeVisible();
     await page.getByLabel(/search by code/i).fill("");
 
     // 5. Trigger a (mocked) sync from the dashboard.
@@ -71,7 +74,7 @@ test.describe("Consumer journey", () => {
     // in-process for the life of the page's route handlers within this test).
     await page.getByRole("link", { name: /my coupons/i }).click();
     await page.reload();
-    await expect(page.getByText("555566667777")).toBeVisible();
+    await expect(page.getByRole("table").getByText("555566667777")).toBeVisible();
   });
 
   test("registers a new account, logs in, logs out, then logs back in", async ({ page }) => {

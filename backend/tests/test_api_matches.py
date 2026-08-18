@@ -76,3 +76,57 @@ def test_coupon_with_no_transaction_date_is_omitted(client):
     statuses = client.get("/api/matches/draw-periods").json()
     coupon_ids = {s["coupon_id"] for s in statuses}
     assert created["id"] not in coupon_ids
+
+
+def _seed_matching_winner(db_session, *, coupon_code: str, category_title_en: str):
+    from app.models.prize_pool import PrizePoolWinner
+
+    winner = PrizePoolWinner(
+        source_record_id=f"draw-win:{coupon_code}",
+        draw_id="draw-win",
+        category_title_en=category_title_en,
+        draw_type="GENERAL",
+        draw_title_en="Test Draw",
+        eligible_from=date(2026, 8, 1),
+        eligible_to=date(2026, 8, 16),
+        published_at=datetime(2026, 8, 17, tzinfo=timezone.utc),
+        claim_deadline=datetime(2026, 9, 1, tzinfo=timezone.utc),
+        claim_open=True,
+        winner_rank=3,
+        prize_fiscal_year_code="2083-84",
+        prize_coupon_number=coupon_code,
+        normalized_coupon_code=coupon_code,
+        raw_draw_json={},
+    )
+    db_session.add(winner)
+    db_session.commit()
+
+
+def test_match_includes_prize_amount_and_eligible_period(client, db_session):
+    _seed_matching_winner(db_session, coupon_code="123412341234", category_title_en="Daily Prize")
+    client.post(
+        "/api/coupons",
+        json={"coupon_code": "123412341234", "transaction_date": "2026-08-05", "fiscal_year": "2083-84"},
+    )
+
+    matches = client.get("/api/matches").json()
+    assert len(matches) == 1
+    match = matches[0]
+    assert match["prize_amount"] == 133_334
+    assert match["prize_amount_net"] == 100_000
+    assert match["winner_rank"] == 3
+    assert match["eligible_from"] == "2026-08-01"
+    assert match["eligible_to"] == "2026-08-16"
+
+
+def test_match_prize_amount_is_null_for_an_unknown_category(client, db_session):
+    _seed_matching_winner(db_session, coupon_code="567856785678", category_title_en="Mystery Prize")
+    client.post(
+        "/api/coupons",
+        json={"coupon_code": "567856785678", "transaction_date": "2026-08-05", "fiscal_year": "2083-84"},
+    )
+
+    matches = client.get("/api/matches").json()
+    assert len(matches) == 1
+    assert matches[0]["prize_amount"] is None
+    assert matches[0]["prize_amount_net"] is None

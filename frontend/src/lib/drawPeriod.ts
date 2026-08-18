@@ -18,6 +18,23 @@ export interface DrawPeriodPresentation {
   detail: string;
 }
 
+/** Icon + pill tone for a draw-period state, so it gets the same visual language as
+ * match status (§45: never color alone) instead of being bare, unstyled text. */
+export function drawPeriodPillProps(status: DrawPeriodStatus | undefined): {
+  icon: string;
+  tone: "neutral" | "estimate" | "warning";
+} {
+  switch (status?.state) {
+    case "DRAWN":
+      return { icon: "✓", tone: "neutral" };
+    case "PENDING":
+      return { icon: "…", tone: "estimate" };
+    case "UNKNOWN":
+    default:
+      return { icon: "?", tone: "warning" };
+  }
+}
+
 export function drawPeriodPresentation(status: DrawPeriodStatus | undefined): DrawPeriodPresentation {
   if (!status) {
     return { label: "—", detail: "No transaction date on file for this coupon." };

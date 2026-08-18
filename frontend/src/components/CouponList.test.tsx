@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { CouponList, deriveMatchStatus } from "./CouponList";
 import { renderWithProviders } from "../test/testUtils";
 import { fixtureCoupons, fixtureDrawPeriods, fixtureMatches } from "../test/fixtures";
@@ -11,14 +11,15 @@ describe("CouponList", () => {
     expect(screen.getByText(/add your first coupon to start tracking/i)).toBeInTheDocument();
   });
 
-  it("renders each coupon with its match status", () => {
+  it("renders each coupon with its match status in the desktop table", () => {
     renderWithProviders(<CouponList coupons={fixtureCoupons} matches={fixtureMatches} onDelete={vi.fn()} />);
+    const table = within(screen.getByRole("table"));
 
-    expect(screen.getByText("007315254493")).toBeInTheDocument();
-    expect(screen.getByText(/claim active/i)).toBeInTheDocument();
-    expect(screen.getByText(/claim expiring soon/i)).toBeInTheDocument();
+    expect(table.getByText("007315254493")).toBeInTheDocument();
+    expect(table.getByText(/claim active/i)).toBeInTheDocument();
+    expect(table.getByText(/claim expiring soon/i)).toBeInTheDocument();
     // coupon-3 has no match.
-    expect(screen.getByText(/no match found yet/i)).toBeInTheDocument();
+    expect(table.getByText(/no match found yet/i)).toBeInTheDocument();
   });
 
   it("shows the draw period window for coupons that are matched", () => {
@@ -30,7 +31,8 @@ describe("CouponList", () => {
         onDelete={vi.fn()}
       />
     );
-    expect(screen.getByText("Jul 17, 2026 – Jul 31, 2026")).toBeInTheDocument();
+    const table = within(screen.getByRole("table"));
+    expect(table.getByText(/Jul 17, 2026 – Jul 31, 2026/)).toBeInTheDocument();
   });
 
   it("shows 'not yet checked' instead of 'no match' when the draw hasn't happened yet", () => {
@@ -53,16 +55,33 @@ describe("CouponList", () => {
         onDelete={vi.fn()}
       />
     );
-    expect(screen.getByText(/not yet checked/i)).toBeInTheDocument();
-    expect(screen.getByText("Aug 17, 2026 – Aug 31, 2026 (est.)")).toBeInTheDocument();
+    const table = within(screen.getByRole("table"));
+    expect(table.getByText(/not yet checked/i)).toBeInTheDocument();
+    expect(table.getByText(/Aug 17, 2026 – Aug 31, 2026 \(est\.\)/)).toBeInTheDocument();
   });
 
   it("calls onDelete with the right coupon when Delete is clicked", async () => {
     const onDelete = vi.fn();
     renderWithProviders(<CouponList coupons={fixtureCoupons} matches={[]} onDelete={onDelete} />);
-    const deleteButtons = screen.getAllByRole("button", { name: /delete coupon/i });
+    const deleteButtons = screen.getAllByRole("button", { name: /delete coupon 007315254493/i });
     deleteButtons[0].click();
     expect(onDelete).toHaveBeenCalledWith(fixtureCoupons[0]);
+  });
+
+  it("renders an equivalent compact card per coupon for narrow viewports", () => {
+    renderWithProviders(
+      <CouponList
+        coupons={fixtureCoupons}
+        matches={fixtureMatches}
+        drawPeriods={fixtureDrawPeriods}
+        onDelete={vi.fn()}
+      />
+    );
+    // The mobile card list is a second, CSS-toggled rendering of the same data --
+    // present in the DOM alongside the desktop table, not conditionally mounted.
+    const card = within(screen.getByRole("list"));
+    expect(card.getByText(/claim active/i)).toBeInTheDocument();
+    expect(card.getByText("2026-07-20 · eSewa")).toBeInTheDocument();
   });
 });
 

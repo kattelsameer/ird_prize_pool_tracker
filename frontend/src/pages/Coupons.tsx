@@ -164,10 +164,10 @@ export function Coupons() {
             Are you sure you want to delete coupon <strong>{pendingDelete.coupon_code}</strong>? This
             only removes it from your tracker; it does not affect anything with IRD.
           </p>
-          <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
+          <div className={styles.confirmActions}>
             <button
               type="button"
-              className={styles.addButton}
+              className={styles.dangerButton}
               onClick={handleConfirmDelete}
               disabled={deleteCoupon.isPending}
             >

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useCoupons } from "../api/coupons";
 import { useWins } from "../api/matches";
 import { useNotifications } from "../api/notifications";
@@ -10,6 +11,8 @@ import { EmptyState } from "../components/EmptyState";
 import { LoadingState } from "../components/LoadingState";
 import { ErrorState } from "../components/ErrorState";
 import { DataSourceBadge } from "../components/DataSourceBadge";
+import { recentDrawLabel, summarizeRecentDraws } from "../lib/recentDraws";
+import { formatSyncRunCounts } from "../lib/syncStatus";
 import styles from "./Dashboard.module.css";
 
 export function Dashboard() {
@@ -29,6 +32,10 @@ export function Dashboard() {
     [notifications.data]
   );
   const syncFailed = syncStatus.data?.latest_run?.status === "failed";
+  const recentDraws = useMemo(
+    () => summarizeRecentDraws(recentUpdates.data?.items ?? []),
+    [recentUpdates.data]
+  );
 
   const hasAnyNotice = expiringWins.length > 0 || newMatchNotifications.length > 0 || syncFailed;
 
@@ -115,15 +122,19 @@ export function Dashboard() {
         {recentUpdates.isSuccess && recentUpdates.data.items.length === 0 && (
           <EmptyState title="No government data yet" description="Run a sync to fetch the latest published draws." />
         )}
-        {recentUpdates.isSuccess && recentUpdates.data.items.length > 0 && (
-          <ul className={styles.updatesList}>
-            {recentUpdates.data.items.map((item) => (
-              <li key={item.id} className={styles.updateItem}>
-                <strong>{item.draw_title_en}</strong> — {item.category}, published{" "}
-                {new Date(item.published_at).toLocaleDateString("en-US", { dateStyle: "medium" })}
-              </li>
-            ))}
-          </ul>
+        {recentUpdates.isSuccess && recentDraws.length > 0 && (
+          <>
+            <ul className={styles.updatesList}>
+              {recentDraws.map((draw) => (
+                <li key={draw.draw_id} className={styles.updateItem}>
+                  {recentDrawLabel(draw)}
+                </li>
+              ))}
+            </ul>
+            <Link to="/prize-pool" className={styles.exploreLink}>
+              View all published draws →
+            </Link>
+          </>
         )}
       </section>
 
@@ -144,6 +155,9 @@ export function Dashboard() {
                     })`
                   : "Never synced yet"}
               </DataSourceBadge>
+              {!syncStatus.data.is_running && syncStatus.data.latest_run && (
+                <p className={styles.syncCounts}>{formatSyncRunCounts(syncStatus.data.latest_run)}</p>
+              )}
             </div>
           )}
           <button
