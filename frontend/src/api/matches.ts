@@ -1,11 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./client";
-import type { MatchResult } from "./types";
+import type { DrawPeriodStatus, MatchResult } from "./types";
 
 export function useMatches() {
   return useQuery({
     queryKey: ["matches"],
     queryFn: () => api.get<MatchResult[]>("/api/matches"),
+  });
+}
+
+export function useDrawPeriods() {
+  return useQuery({
+    queryKey: ["matches", "draw-periods"],
+    queryFn: () => api.get<DrawPeriodStatus[]>("/api/matches/draw-periods"),
   });
 }
 

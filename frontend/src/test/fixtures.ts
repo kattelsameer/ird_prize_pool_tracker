@@ -3,6 +3,7 @@ import type { Paginated } from "../api/client";
 import type {
   AppNotification,
   Coupon,
+  DrawPeriodStatus,
   MatchResult,
   Network,
   PrizePool,
@@ -154,6 +155,47 @@ export const fixtureMatches: MatchResult[] = [
     claim_open: fixturePrizePools[1].claim_open,
     message:
       "Your coupon matches a result published by IRD for the \"Daily Winner Consumer Selection for the period of Shrawan 16 to 31\" draw. To claim, you must provide the original physical bill and PAN in person at an Inland Revenue Office before the claim deadline.",
+  },
+];
+
+// Mirrors the backend's flat DrawPeriodStatusRead shape (app/schemas/draw_period.py) exactly --
+// what GET /api/matches/draw-periods returns. coupon-1/coupon-2 already have a match (see
+// fixtureMatches above) so their period entries are DRAWN; coupon-3's transaction date
+// (2026-06-01) predates every synced period's window, which is a sync gap (UNKNOWN), not "not
+// drawn yet".
+export const fixtureDrawPeriods: DrawPeriodStatus[] = [
+  {
+    coupon_id: fixtureCoupons[0].id,
+    state: "DRAWN",
+    eligible_from: fixturePrizePools[0].eligible_from,
+    eligible_to: fixturePrizePools[0].eligible_to,
+    draw_id: fixturePrizePools[0].draw_id,
+    draw_title_en: fixturePrizePools[0].draw_title_en,
+    published_at: fixturePrizePools[0].published_at,
+    estimated_publish_date: null,
+    is_estimated: false,
+  },
+  {
+    coupon_id: fixtureCoupons[1].id,
+    state: "DRAWN",
+    eligible_from: fixturePrizePools[1].eligible_from,
+    eligible_to: fixturePrizePools[1].eligible_to,
+    draw_id: fixturePrizePools[1].draw_id,
+    draw_title_en: fixturePrizePools[1].draw_title_en,
+    published_at: fixturePrizePools[1].published_at,
+    estimated_publish_date: null,
+    is_estimated: false,
+  },
+  {
+    coupon_id: fixtureCoupons[2].id,
+    state: "UNKNOWN",
+    eligible_from: null,
+    eligible_to: null,
+    draw_id: null,
+    draw_title_en: null,
+    published_at: null,
+    estimated_publish_date: null,
+    is_estimated: false,
   },
 ];
 

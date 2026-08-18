@@ -5,8 +5,10 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_profile, get_db
 from app.models.profile import ConsumerProfile
+from app.schemas.draw_period import DrawPeriodStatusRead
 from app.schemas.match import MatchRead
 from app.services.claim_service import list_claims_for_profile, list_wins_for_profile
+from app.services.draw_period_service import compute_draw_period_statuses_for_profile
 from app.services.matching_service import build_match_message, compute_matches_for_profile
 
 router = APIRouter(prefix="/api", tags=["matches"])
@@ -51,3 +53,17 @@ def list_claims_endpoint(
     db: Session = Depends(get_db), profile: ConsumerProfile = Depends(get_current_profile)
 ):
     return [_to_read(m) for m in list_claims_for_profile(db, profile.id)]
+
+
+@router.get("/matches/draw-periods", response_model=list[DrawPeriodStatusRead])
+def list_draw_period_statuses_endpoint(
+    db: Session = Depends(get_db), profile: ConsumerProfile = Depends(get_current_profile)
+):
+    """Per-coupon draw-period context (CLAUDE.md §6/§29), independent of
+    whether the coupon actually won -- see the module docstring on
+    `app.domain.draw_period` for what DRAWN/PENDING/UNKNOWN mean."""
+    statuses = compute_draw_period_statuses_for_profile(db, profile.id)
+    return [
+        DrawPeriodStatusRead(coupon_id=coupon_id, **status.__dict__)
+        for coupon_id, status in statuses.items()
+    ]

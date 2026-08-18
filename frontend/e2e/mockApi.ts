@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import {
   fixtureCoupons,
+  fixtureDrawPeriods,
   fixtureMatches,
   fixtureNotifications,
   fixturePrizePools,
@@ -119,6 +120,9 @@ export async function installMockApi(page: Page) {
 
   await page.route("**/api/matches", async (route) => {
     await route.fulfill({ json: fixtureMatches });
+  });
+  await page.route("**/api/matches/draw-periods", async (route) => {
+    await route.fulfill({ json: fixtureDrawPeriods });
   });
   await page.route("**/api/wins", async (route) => {
     await route.fulfill({ json: fixtureMatches });
