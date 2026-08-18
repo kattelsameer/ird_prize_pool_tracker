@@ -21,13 +21,16 @@ export async function installMockApi(page: Page) {
   let notifications = [...fixtureNotifications];
 
   const token = "e2e-fixture-token";
+  const registeredCredentials = new Map<string, string>([[fixtureUser.email, E2E_TEST_PASSWORD]]);
 
   await page.route("**/api/auth/register", async (route) => {
+    const body = route.request().postDataJSON() as { email: string; password: string };
+    registeredCredentials.set(body.email, body.password);
     await route.fulfill({ status: 201, json: { access_token: token, token_type: "bearer", user: fixtureUser } });
   });
   await page.route("**/api/auth/login", async (route) => {
     const body = route.request().postDataJSON() as { email: string; password: string };
-    if (body.email === fixtureUser.email && body.password === E2E_TEST_PASSWORD) {
+    if (registeredCredentials.get(body.email) === body.password) {
       await route.fulfill({ json: { access_token: token, token_type: "bearer", user: fixtureUser } });
       return;
     }

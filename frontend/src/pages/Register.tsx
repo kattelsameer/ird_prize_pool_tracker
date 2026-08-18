@@ -25,7 +25,10 @@ export function Register() {
     if (password.length < MIN_PASSWORD_LENGTH) return;
     register.mutate(
       { email, password },
-      { onSuccess: () => navigate("/", { replace: true }) }
+      {
+        onSuccess: () =>
+          navigate("/login", { replace: true, state: { justRegistered: true } }),
+      }
     );
   }
 
